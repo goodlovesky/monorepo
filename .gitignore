@@ -5,16 +5,17 @@
 Cargo.lock.bak
 
 # Flutter
-app/.dart_tool/
-app/.flutter-plugins
-app/.flutter-plugins-dependencies
-app/.packages
-app/.pub-cache/
-app/.pub/
-app/build/
-app/.idea/
-app/*.iml
-app/.vscode/
+.dart_tool/
+**/.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+.idea/
+*.iml
+.vscode/
 **/ios/Pods/
 **/ios/.symlinks/
 **/ios/Flutter/Flutter.framework
@@ -23,6 +24,12 @@ app/.vscode/
 **/macos/Flutter/ephemeral
 **/windows/flutter/ephemeral
 **/linux/flutter/ephemeral
+
+# 嵌入到 Flutter bundle 里的 Rust dylib（不要 commit，构建脚本会生成）
+app/macos/Runner/Frameworks/*.dylib
+app/android/app/src/main/jniLibs/**/*.so
+app/build/**/libcore_bridge.dylib
+app/build/**/libcore_bridge.so
 
 # IDE
 .idea/
