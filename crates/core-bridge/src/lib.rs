@@ -12,8 +12,9 @@
 //!
 //! ## 当前阶段
 //!
-//! Phase 0.2: 最小可用的 FFI demo，验证 `Rust → C ABI → Dart FFI` 链路。
-//! 真实 clash-rs 集成在 Phase 1 启用 `full` feature。
+//! Phase 0.3: 集成 clash-lib，提供 engine start/stop 能力。
+
+mod engine;
 
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
@@ -309,6 +310,87 @@ pub extern "C" fn proxy_free_string(ptr: *mut c_char) {
     }
     unsafe {
         let _ = CString::from_raw(ptr);
+    }
+}
+
+// ========================================================================
+// 引擎 FFI 导出（Phase 0.3）
+// ========================================================================
+
+/// 启动代理引擎（异步，不阻塞调用线程）。
+///
+/// # Arguments
+///
+/// * `config_path` - Clash YAML 配置文件路径
+/// * `cwd` - 工作目录（用于解析相对路径）
+/// * `log_file` - 可选日志文件路径，NULL 表示仅控制台输出
+///
+/// # Returns
+///
+/// 0 成功，负数失败（错误码见 `ErrorCode`）。
+///
+/// # Safety
+///
+/// 所有指针必须是合法的 UTF-8 C 字符串，或者为 NULL。
+#[no_mangle]
+pub extern "C" fn proxy_engine_start(
+    config_path: *const c_char,
+    cwd: *const c_char,
+    log_file: *const c_char,
+) -> i32 {
+    ffi_guard!({
+        let config = unsafe { read_c_str(config_path, "config_path")? };
+        let cwd = unsafe { read_c_str(cwd, "cwd")? };
+        let log = if log_file.is_null() {
+            None
+        } else {
+            Some(unsafe { read_c_str(log_file, "log_file")? })
+        };
+        engine::start(config, cwd, log).map_err(CoreError::Internal)?;
+        Ok::<(), CoreError>(())
+    })
+}
+
+/// 停止代理引擎。阻塞最多 5 秒等后台线程退出。
+#[no_mangle]
+pub extern "C" fn proxy_engine_stop() -> i32 {
+    ffi_guard!({
+        engine::stop().map_err(CoreError::Internal)?;
+        Ok::<(), CoreError>(())
+    })
+}
+
+/// 查询引擎是否在运行。
+///
+/// # Returns
+///
+/// 1 = 运行中, 0 = 未运行, 负数 = 错误。
+#[no_mangle]
+pub extern "C" fn proxy_engine_is_running() -> i32 {
+    match panic::catch_unwind(panic::AssertUnwindSafe(|| engine::is_running())) {
+        Ok(true) => 1,
+        Ok(false) => 0,
+        Err(_) => ErrorCode::Internal.as_i32(),
+    }
+}
+
+/// 查询引擎详细状态（JSON 字符串）。
+///
+/// 返回的指针需要 `libc::free()` 释放。
+#[no_mangle]
+pub extern "C" fn proxy_engine_status() -> *mut c_char {
+    let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+        let s = engine::status();
+        serde_json::to_string(&s).map_err(|e| CoreError::Internal(e.to_string()))
+    }));
+
+    match result {
+        Ok(Ok(s)) => to_c_string(s),
+        Ok(Err(e)) => {
+            tracing::error!(error = %e, "proxy_engine_status failed");
+            std::ptr::null_mut()
+        }
+        Err(_) => std::ptr::null_mut(),
     }
 }
 

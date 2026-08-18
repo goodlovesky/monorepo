@@ -41,14 +41,31 @@
 
 | 工具 | 版本 | 用途 |
 |---|---|---|
-| Rust | 1.75+ | 内核开发 |
-| Cargo | 1.75+ | Rust 包管理 |
+| Rust | 1.91+ (推荐 stable) | 内核开发。clash-lib 0.10.7 需要 rustc ≥ 1.91（shadowsocks, smoltcp） |
+| Cargo | 1.91+ | Rust 包管理 |
+| **rustup** | 1.29+ | **推荐用 rustup 管版本**，避免和 Homebrew rust 冲突 |
 | Flutter | 3.x stable | UI 开发 |
 | Dart | 3.x | Flutter 配套 |
 | Android NDK | r26+ | Android .so 编译 |
 | Xcode | 15+ | iOS / macOS |
 | CMake | 3.29+ | clash-rs 编译依赖 |
 | nasm | latest | Windows 编译 |
+
+### ⚠️ Rust 升级注意
+
+如果之前用 Homebrew 装了 rust，但版本 < 1.91，**需要切到 rustup**：
+
+```bash
+# 装 rustup（已装可跳）
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+
+# 把 cargo 路径加到 PATH（zsh）
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# 验证
+rustc --version   # 应该 >= 1.91
+```
 
 ### 编译 Rust
 

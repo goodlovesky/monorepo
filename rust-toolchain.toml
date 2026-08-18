@@ -1,3 +1,6 @@
 [toolchain]
 channel = "stable"
 components = ["rustfmt", "clippy"]
+# clash-lib 0.10.7 requires rustc >= 1.91 (shadowsocks, smoltcp)
+# 建议至少 rustc 1.91，推荐 stable
+# profiles = ["minimal"]

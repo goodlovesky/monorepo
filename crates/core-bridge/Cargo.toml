@@ -29,22 +29,24 @@ thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
-# 异步运行时（Phase 1 集成 clash-rs 时启用）
+# 异步运行时
 tokio = { workspace = true, optional = true }
 
 # 日志
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, optional = true }
 
-# clash-rs 依赖（Phase 1 集成时启用，目前注释掉以加速 Phase 0 demo）
-# clash-rs = { workspace = true }
-# clash-lib = { workspace = true }
+# clash-rs 核心（Phase 0.3 集成）
+# 用 0.8.2 不用 0.9.x/0.10.x：旧版 russh 跟老 pkcs5 兼容
+# 0.9.x russh 0.60 + pkcs5 0.8 API 不兼容
+# 0.10.x 依赖 nightly + 新 rustls API
+# 砍掉了 ssh/tuic/wireguard/shadowquic 这些协议，先跑通链路
+clash-lib = { workspace = true, default-features = false, features = ["shadowsocks", "zero_copy", "tun", "tproxy", "ring"] }
 
 [features]
-default = []
-# Phase 1 启用
-# full = ["dep:tokio", "dep:tracing-subscriber"]
-full = []
+default = ["dep:tokio", "dep:tracing-subscriber"]
+# Phase 0.2 demo 模式（不启用 clash-lib）: cargo build --no-default-features
+demo = []
 
 [dev-dependencies]
 # 测试

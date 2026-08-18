@@ -7,15 +7,19 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.91"
 license = "GPL-3.0-or-later"
 authors = ["yukee <yukeeokko@gmail.com>"]
 repository = "https://github.com/goodlovesky/monorepo"
 
 [workspace.dependencies]
 # 核心代理引擎
-clash-rs = { git = "https://github.com/Watfaq/clash-rs", tag = "v0.10.7" }
-clash-lib = { git = "https://github.com/Watfaq/clash-rs", tag = "v0.10.7" }
+# 0.8.2 是最后一个在 stable Rust + 老版 russh 上能编译的版本
+# 0.9.x 用了 russh 0.60（pkcs5 API 变化导致编译失败）
+# 0.10.x 依赖 nightly + 新的 rustls API，目前还不稳定
+# default-features = false: 关掉默认的 aws-lc-rs
+clash-rs = { git = "https://github.com/Watfaq/clash-rs", tag = "v0.8.2", default-features = false }
+clash-lib = { git = "https://github.com/Watfaq/clash-rs", tag = "v0.8.2", default-features = false }
 
 # 异步运行时
 tokio = { version = "1", features = ["full"] }
