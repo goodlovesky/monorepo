@@ -483,22 +483,13 @@ rules:
                           letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Flutter × clash-rs · $_version',
-                        style: const TextStyle(
-                          fontFamily: 'serif',
-                          fontSize: 13,
-                          color: Color(0xFF8A8A8A),
-                        ),
-                      ),
                     ],
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 28),
+            const SizedBox(height: 32),
 
             // ========== 启动状态大卡片 ==========
             _StatusHeroCard(
@@ -520,27 +511,27 @@ rules:
               onTap: _openProxy,
             ),
 
-            const SizedBox(height: 36),
+            const SizedBox(height: 28),
 
             // ========== 列表 ==========
             _MenuItem(
-              icon: Icons.description_outlined,
+              icon: Icons.assignment_outlined,
               title: '日志',
               onTap: _openLogs,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             _MenuItem(
               icon: Icons.settings_outlined,
               title: '设置',
               onTap: _openSettings,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             _MenuItem(
               icon: Icons.help_outline,
               title: '帮助',
               onTap: _openHelp,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             _MenuItem(
               icon: Icons.info_outline,
               title: '关于',
@@ -618,18 +609,7 @@ class _StatusHeroCard extends StatelessWidget {
               Container(
                 width: 64,
                 height: 64,
-                decoration: BoxDecoration(
-                  color: running
-                      ? const Color(0xFF2E5B3E)
-                      : const Color(0xFF2A2A2A),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: running
-                        ? const Color(0xFF4ADE80)
-                        : const Color(0xFF606060),
-                    width: 2,
-                  ),
-                ),
+                alignment: Alignment.center,
                 child: busy
                     ? const Center(
                         child: SizedBox(
@@ -642,10 +622,10 @@ class _StatusHeroCard extends StatelessWidget {
                         ),
                       )
                     : Icon(
-                        running ? Icons.check_circle_outline : Icons.do_not_disturb_on,
+                        running ? Icons.check_circle_outline : Icons.do_not_disturb_on_outlined,
                         color: running
                             ? const Color(0xFF4ADE80)
-                            : const Color(0xFF909090),
+                            : const Color(0xFFC0C0C0),
                         size: 36,
                       ),
               ),
@@ -656,7 +636,7 @@ class _StatusHeroCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      running ? '已连接' : '已停止',
+                      running ? '运行中' : '已停止',
                       style: const TextStyle(
                         fontFamily: 'serif',
                         fontSize: 24,
@@ -708,12 +688,6 @@ class _StatusHeroCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (running)
-                IconButton(
-                  icon: const Icon(Icons.tune, color: Color(0xFFB0B0B0)),
-                  tooltip: '节点选择',
-                  onPressed: onOpenProxy,
-                ),
             ],
           ),
         ),
@@ -756,7 +730,7 @@ class _ConfigCard extends StatelessWidget {
                   color: const Color(0xFF2A2A2A),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.dashboard_customize_outlined,
+                child: const Icon(Icons.view_list_outlined,
                     color: Color(0xFFE0E0E0), size: 24),
               ),
               const SizedBox(width: 20),
@@ -766,13 +740,12 @@ class _ConfigCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
-                      '配  置',
+                      '配 置',
                       style: TextStyle(
                         fontFamily: 'serif',
                         fontSize: 20,
                         fontWeight: FontWeight.w500,
                         color: Color(0xFFE8E8E8),
-                        letterSpacing: 2,
                       ),
                     ),
                     const SizedBox(height: 4),
