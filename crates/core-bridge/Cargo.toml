@@ -1,0 +1,51 @@
+[package]
+name = "core-bridge"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "FFI bridge exposing the clash-rs proxy core to Dart/Flutter"
+
+[lib]
+name = "core_bridge"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "allow"
+missing_debug_implementations = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[dependencies]
+# FFI 必需
+libc = { workspace = true }
+
+# 错误处理
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# 序列化
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# 异步运行时（Phase 1 集成 clash-rs 时启用）
+tokio = { workspace = true, optional = true }
+
+# 日志
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, optional = true }
+
+# clash-rs 依赖（Phase 1 集成时启用，目前注释掉以加速 Phase 0 demo）
+# clash-rs = { workspace = true }
+# clash-lib = { workspace = true }
+
+[features]
+default = []
+# Phase 1 启用
+# full = ["dep:tokio", "dep:tracing-subscriber"]
+full = []
+
+[dev-dependencies]
+# 测试
+tempfile = "3"

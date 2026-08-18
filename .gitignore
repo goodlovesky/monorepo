@@ -1,0 +1,44 @@
+# Rust
+/target
+**/target
+**/*.rs.bk
+Cargo.lock.bak
+
+# Flutter
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.packages
+app/.pub-cache/
+app/.pub/
+app/build/
+app/.idea/
+app/*.iml
+app/.vscode/
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/macos/Pods/
+**/macos/Flutter/ephemeral
+**/windows/flutter/ephemeral
+**/linux/flutter/ephemeral
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# FFI 生成的 bindings
+/bindings
+**/bindings.h
+**/*.xcframework
+
+# 临时
+*.log
+*.tmp
