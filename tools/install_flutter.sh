@@ -223,19 +223,25 @@ if [[ -f "$HOME/.zshrc" ]]; then
     fi
 fi
 
-# 也写到 ~/.bash_profile 兼容 bash
-if [[ -f "$HOME/.bash_profile" ]] || [[ -f "$HOME/.bashrc" ]]; then
-    for f in "$HOME/.bash_profile" "$HOME/.bashrc"; do
-        if [[ -f "$f" ]] && ! grep -q "FLUTTER_ROOT" "$f"; then
-            {
-                echo ""
-                echo "# Flutter (added by install_flutter.sh)"
-                echo "$EXPORT_LINE"
-                echo "$PATH_LINE"
-            } >> "$f"
-        fi
-    done
-    success "已写入 ~/.bash_profile / ~/.bashrc"
+# 也写到 ~/.bash_profile 兼容 bash 用户（仅当文件可写）
+for f in "$HOME/.bash_profile" "$HOME/.bashrc"; do
+    if [[ -f "$f" ]] && [[ -w "$f" ]] && ! grep -q "FLUTTER_ROOT" "$f"; then
+        {
+            echo ""
+            echo "# Flutter (added by install_flutter.sh)"
+            echo "$EXPORT_LINE"
+            echo "$PATH_LINE"
+        } >> "$f" 2>/dev/null && success "已写入 $f" || warn "$f 写入失败（跳过）"
+    fi
+done
+
+# 提示 bash 用户（如果 ~/.bash_profile 存在但没写）
+if [[ -f "$HOME/.bash_profile" ]] && ! grep -q "FLUTTER_ROOT" "$HOME/.bash_profile" 2>/dev/null; then
+    if [[ ! -w "$HOME/.bash_profile" ]]; then
+        warn "bash 用户注意：如需 bash 也有 flutter，手动加这几行到 ~/.bash_profile："
+        echo "    $EXPORT_LINE"
+        echo "    $PATH_LINE"
+    fi
 fi
 
 # 当前 shell 立即生效
