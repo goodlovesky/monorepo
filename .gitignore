@@ -35,8 +35,9 @@ app/.vscode/
 Thumbs.db
 
 # FFI 生成的 bindings
-/bindings
-**/bindings.h
+# /bindings           # 我们要 commit 生成的 .h 头文件，所以不忽略整个目录
+# **/bindings.h
+# **/bindings.hpp
 **/*.xcframework
 
 # 临时
