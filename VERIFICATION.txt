@@ -110,3 +110,64 @@ LITERAL_OUTPUT=ROLLBACK_VERIFIED files=15 absent=2
 EXIT_STATUS=0
 RESTORED_BEHAVIOR=all baseline SHA-256 values match and the two new packaging files are absent in the rollback fixture
 WORKSPACE_STATUS=live workspace remains modified with Windows packaging implementation
+
+CROSS_PLATFORM_PACKAGING_AND_LINUX
+==================================
+BRANCH=feature/mihomo-desktop
+CHANGED_FIELD=cmd Android/macOS/Windows/Linux packaging entrypoints; Linux Flutter runner; GNOME/KDE proxy recovery; Linux TUN capability; pinned Mihomo; DEB and tar.gz packaging
+ARTIFACT_ROOT=$PROJECT_ROOT/output/cross-platform-packaging-20260824-195100
+MODIFIED_FILE=$PROJECT_ROOT/output/cross-platform-packaging-20260824-195100/MODIFIED_FILE
+DIFF_FILE=$PROJECT_ROOT/output/cross-platform-packaging-20260824-195100/DIFF_FILE
+VERIFICATION=$PROJECT_ROOT/output/cross-platform-packaging-20260824-195100/VERIFICATION.txt
+ROLLBACK=$PROJECT_ROOT/output/cross-platform-packaging-20260824-195100/ROLLBACK.sh
+
+BASELINE
+COMMAND=cd $PROJECT_ROOT/app && flutter analyze && flutter test test/desktop_runtime_test.dart test/mac_network_service_test.dart test/windows_network_service_test.dart
+INPUT=pre-Linux implementation workspace
+LITERAL_OUTPUT=No issues found! (ran in 3.0s)
+LITERAL_OUTPUT=00:00 +10: All tests passed!
+EXIT_STATUS=0
+RESULT=existing macOS and Windows desktop behavior passed before Linux changes
+
+MODIFIED
+COMMAND=cd $PROJECT_ROOT/app && flutter analyze && flutter test
+INPUT=cross-platform commands, Linux runner/network service, Linux packaging contracts
+LITERAL_OUTPUT=No issues found! (ran in 3.8s)
+LITERAL_OUTPUT=00:18 +100: All tests passed!
+EXIT_STATUS=0
+RESULT=analysis and all 100 tests passed
+
+MACOS_PACKAGE
+COMMAND=cd $PROJECT_ROOT && ./cmd/build-macos.sh --skip-tests
+INPUT=macOS native host, bundled universal Mihomo v1.19.30, ad-hoc signing
+LITERAL_OUTPUT=Built build/macos/Build/Products/Release/Clash RS.app (198.6MB)
+LITERAL_OUTPUT=created: $PROJECT_ROOT/dist/macos/Clash-RS-macOS.dmg
+EXIT_STATUS=0
+RESULT=APP, DMG, BUILD-MANIFEST.json, BUILD-ENVIRONMENT.txt and SHA256.txt generated
+
+LINUX_CI
+COMMAND=GitHub Actions Desktop Linux x64 run 32723633651
+INPUT=Ubuntu 24.04; ./cmd/build-linux.sh --clean --skip-tests
+LITERAL_OUTPUT=16 tests passed
+LITERAL_OUTPUT=Built build/linux/x64/release/bundle/clash_rs
+LITERAL_OUTPUT=ClashRS-1.0.0-linux-x64.tar.gz: OK
+LITERAL_OUTPUT=clash-rs_1.0.0_amd64.deb: OK
+EXIT_STATUS=0
+RESULT=Linux release, fixed 960x720 window, DEB, tar.gz, pinned Mihomo, manifest and checksums verified; artifact ID 9518755339; artifact ZIP SHA-256 1a703b3f474912cb57daf769ab12cf90998ce353f0c782afb2f04ce2150f79e1
+
+WINDOWS_REGRESSION_CI
+COMMAND=GitHub Actions Desktop Windows x64 run 32723633744
+INPUT=final Linux integration and fixed-window commit on Windows native runner
+LITERAL_OUTPUT=Build, test and package=success
+LITERAL_OUTPUT=Install and uninstall smoke test=success
+EXIT_STATUS=0
+RESULT=Linux integration did not regress Windows packaging
+
+CROSS_PLATFORM_PACKAGING_ROLLBACK
+COMMAND=$PROJECT_ROOT/output/cross-platform-packaging-20260824-195100/ROLLBACK.sh $PROJECT_ROOT/output/cross-platform-packaging-20260824-195100/rollback-fixture
+INPUT=isolated copy of 33 changed paths; live workspace excluded
+LITERAL_OUTPUT=ROLLBACK_APPLIED target=$PROJECT_ROOT/output/cross-platform-packaging-20260824-195100/rollback-fixture
+LITERAL_OUTPUT=ROLLBACK_VERIFIED restored=9 absent=24
+EXIT_STATUS=0
+RESTORED_BEHAVIOR=all nine baseline files match SHA-256 and 24 baseline-absent paths are absent
+WORKSPACE_STATUS=live workspace remains modified with cross-platform packaging and Linux desktop implementation

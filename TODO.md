@@ -2,7 +2,7 @@
 
 > 更新日期：2026-08-24
 > 当前分支：`feature/mihomo-desktop`
-> 桌面基准：Flutter 共用 UI，macOS / Windows 固定窗口 `960 × 720`，应用版本 `1.0.0`。
+> 桌面基准：Flutter 共用 UI，macOS / Windows / Linux 固定窗口 `960 × 720`，应用版本 `1.0.0`。
 
 ## P0 — 已完成的实现
 
@@ -18,6 +18,9 @@
 - [x] mihomo `v1.19.30` 与 Wintun `0.14.1` 固定版本及下载 SHA-256 校验完成，不再使用 `latest`。
 - [x] Windows 安装器支持覆盖升级、旧进程优雅退出、静默安装/卸载和用户配置保留。
 - [x] Windows x64 GitHub Actions 构建、资源校验、临时安装与卸载冒烟任务完成：`.github/workflows/desktop-windows.yml`。
+- [x] 根目录 `cmd/` 提供 Android、macOS、Windows、Linux 与当前宿主批量打包入口。
+- [x] Linux Flutter runner、GNOME/KDE 系统代理快照恢复、TUN capability 检查和 XDG 运行目录接入完成。
+- [x] Linux x64 固定 Mihomo `v1.19.30`、DEB/tar.gz、构建清单、SHA-256 与 GitHub Actions 原生构建完成。
 - [x] 当前源码重新生成 Universal macOS App 和 DMG；App、helper、mihomo 均为 `arm64+x86_64`。
 - [x] macOS DMG 本地完整性、架构、ad-hoc 签名和启动冒烟验证完成。
 
@@ -68,13 +71,14 @@
 - [ ] 全新 macOS 用户留存发布验收证据：系统代理、TUN、强退恢复、睡眠唤醒、Wi-Fi/有线切换、取消提权、卸载。
 - [ ] Windows 10/11 x64：CI 产物安装、系统代理、Wintun、恢复、开机/静默启动、升级、卸载。
 - [ ] Windows 100%/125%/150% DPI、多屏及负坐标屏幕。
+- [ ] Ubuntu 22.04/24.04 与 KDE Plasma 真机执行系统代理、TUN、强退恢复、开机自启、DEB 升级和卸载验收。
 - [ ] 使用真实验收订阅执行出口变化、节点延迟和连续代理测试。
 - [ ] 8 小时/24 小时持续运行，留存内存、句柄、进程、定时器和日志增长记录。
 
 ## 后续版本路线（不属于 1.0.0 未完成项）
 
 - Windows arm64。
-- Linux 桌面端。
+- Linux arm64 与 RPM/AppImage 发布格式。
 - 多内核版本管理、升级和回退。
 - 配置同步与加密导入导出包。
 - 可扩展测试模板和规则/脚本插件体系。

@@ -33,6 +33,8 @@
 | BUG-025 | 系统代理首个恢复错误中断全部流程 | 汇总所有服务/协议失败并保留 recovery | macOS 网络服务实现 |
 | BUG-026 | 开机自启仅写 plist | 使用 launchctl bootstrap/bootout，重复实例自动退出 | 启动注册契约测试 |
 | BUG-027 | 公证顺序错误 | App 公证与 staple 完成后才制作、公证和 staple DMG | 构建顺序契约测试 |
+| BUG-028 | Linux 被当作移动端且网络服务误用 macOS 实现 | Linux 接入共用桌面 UI、专用网络服务、核心路径、URL/脚本及开机自启 | Linux 网络服务与打包合同测试 |
+| BUG-029 | 缺少统一跨平台发布入口 | 根目录 `cmd/` 统一调度四个平台原生打包并输出清单和 SHA-256 | `cross_platform_packaging_contract_test.dart` |
 
 ## 已实现但仍需视觉矩阵复核
 
@@ -67,6 +69,11 @@
 ### RISK-004：长期运行（P2）
 
 8 小时/24 小时 soak 需要真实时间与流量。自动重启、定时器取消、日志上限已实现，但仍需留存长期资源曲线。
+
+### RISK-005：Linux 桌面环境矩阵（P1）
+
+- Ubuntu GitHub Actions 已完成 Flutter release、DEB、tar.gz、文件清单和 SHA-256 验证。
+- GNOME/KDE 代理命令与恢复状态已有自动化测试；Wayland/X11、真实桌面会话和 TUN capability 仍需目标机留存验收证据。
 
 ## 当前测试覆盖
 
