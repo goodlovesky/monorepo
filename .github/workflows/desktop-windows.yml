@@ -44,11 +44,20 @@ jobs:
         shell: powershell
         run: |
           $skipTests = '${{ github.event_name == 'workflow_dispatch' && inputs.run_tests == false }}' -eq 'true'
-          if ($skipTests) {
-            ./tools/build_windows.ps1 -Architecture x64 -Installer -Clean -SkipTests
-          } else {
-            ./tools/build_windows.ps1 -Architecture x64 -Installer -Clean
+          if (-not $skipTests) {
+            Push-Location app
+            flutter analyze
+            if ($LASTEXITCODE -ne 0) { throw "flutter analyze failed: $LASTEXITCODE" }
+            flutter test `
+              test/windows_network_service_test.dart `
+              test/windows_packaging_contract_test.dart `
+              test/desktop_runtime_test.dart `
+              test/vpn_controller_test.dart `
+              test/profile_repository_test.dart
+            if ($LASTEXITCODE -ne 0) { throw "Windows contract tests failed: $LASTEXITCODE" }
+            Pop-Location
           }
+          ./tools/build_windows.ps1 -Architecture x64 -Installer -Clean -SkipTests
 
       - name: Verify packaged resources
         shell: powershell
