@@ -171,3 +171,40 @@ LITERAL_OUTPUT=ROLLBACK_VERIFIED restored=9 absent=24
 EXIT_STATUS=0
 RESTORED_BEHAVIOR=all nine baseline files match SHA-256 and 24 baseline-absent paths are absent
 WORKSPACE_STATUS=live workspace remains modified with cross-platform packaging and Linux desktop implementation
+
+README_ONBOARDING_20260824
+=========================
+BRANCH=feature/mihomo-desktop
+CHANGED_FIELD=English project README; complete Simplified Chinese beginner guide; platform packaging and first-use instructions
+ARTIFACT_ROOT=$PROJECT_ROOT/output/readme-onboarding-20260824-203623
+MODIFIED_FILE=$PROJECT_ROOT/output/readme-onboarding-20260824-203623/MODIFIED_FILE
+DIFF_FILE=$PROJECT_ROOT/output/readme-onboarding-20260824-203623/DIFF_FILE
+VERIFICATION=$PROJECT_ROOT/output/readme-onboarding-20260824-203623/VERIFICATION.txt
+ROLLBACK=$PROJECT_ROOT/output/readme-onboarding-20260824-203623/ROLLBACK.sh
+
+BASELINE
+COMMAND=cd $PROJECT_ROOT && sed -n '1,260p' README.md && test ! -e README_ZH.md
+INPUT=pre-change README at commit 0777c87
+LITERAL_OUTPUT=# Clash RS; existing Chinese architecture/build summary; README_ZH.md absent
+EXIT_STATUS=0
+RESULT=original single-language README captured with SHA-256
+
+MODIFIED
+COMMAND=cd $PROJECT_ROOT && python3 README contract validator && ./cmd/build-android.sh --help && ./cmd/build-macos.sh --help && ./cmd/build-linux.sh --help && ./cmd/build-all.sh --help
+INPUT=README.md English onboarding guide and README_ZH.md complete Simplified Chinese beginner guide
+LITERAL_OUTPUT=README_CONTRACT_OK files=2 links=valid commands=5 workflows=2 version=1.0.0
+LITERAL_OUTPUT=Usage: ./cmd/build-android.sh [--clean] [--skip-tests] [--apk-only|--aab-only]
+LITERAL_OUTPUT=Usage: ./cmd/build-macos.sh [--clean] [--skip-tests]
+LITERAL_OUTPUT=Usage: $PROJECT_ROOT/tools/build_linux.sh [--clean] [--skip-tests] [--deb-only|--tar-only]
+LITERAL_OUTPUT=Usage: ./cmd/build-all.sh [shared build arguments]
+EXIT_STATUS=0
+RESULT=both README files, local links, version, five platform commands, two CI workflows, package paths and whitespace validated
+
+README_ONBOARDING_ROLLBACK
+COMMAND=$PROJECT_ROOT/output/readme-onboarding-20260824-203623/ROLLBACK.sh $PROJECT_ROOT/output/readme-onboarding-20260824-203623/rollback-fixture
+INPUT=isolated modified copies of README.md, README_ZH.md and VERIFICATION.txt; live workspace excluded
+LITERAL_OUTPUT=ROLLBACK_APPLIED target=$PROJECT_ROOT/output/readme-onboarding-20260824-203623/rollback-fixture
+LITERAL_OUTPUT=ROLLBACK_VERIFIED restored=2 absent=1
+EXIT_STATUS=0
+RESTORED_BEHAVIOR=README.md and VERIFICATION.txt match original SHA-256; baseline-absent README_ZH.md is absent
+WORKSPACE_STATUS=live workspace remains modified with bilingual onboarding documentation
