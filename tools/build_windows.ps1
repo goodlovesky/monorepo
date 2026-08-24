@@ -103,13 +103,16 @@ try {
     }
   }
 
+  $FlutterVersionOutput = @(& flutter --version 2>&1)
+  if ($LASTEXITCODE -ne 0) { throw "flutter --version failed with exit code $LASTEXITCODE" }
+  $FlutterVersion = [string]$FlutterVersionOutput[0]
   $EnvironmentFile = Join-Path $Dist 'BUILD-ENVIRONMENT.txt'
   @(
     "built_at=$([DateTime]::UtcNow.ToString('o'))",
     "app_version=$AppVersion",
     "build_number=$BuildNumber",
     "architecture=$Architecture",
-    "flutter=$(flutter --version | Select-Object -First 1)",
+    "flutter=$FlutterVersion",
     "powershell=$($PSVersionTable.PSVersion)",
     "windows=$([Environment]::OSVersion.VersionString)"
   ) | Set-Content -Encoding utf8 $EnvironmentFile
@@ -148,3 +151,7 @@ try {
   Write-Host "Portable: $Portable"
   if ($Installer) { Write-Host "Installer: $(Join-Path $Dist $InstallerName)" }
 } finally { Pop-Location }
+
+# Do not leak a stale native-process exit code to callers after every artifact
+# has been created successfully.
+$global:LASTEXITCODE = 0
