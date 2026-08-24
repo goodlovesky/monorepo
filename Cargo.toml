@@ -14,12 +14,11 @@ repository = "https://github.com/goodlovesky/monorepo"
 
 [workspace.dependencies]
 # 核心代理引擎
-# 0.8.2 是最后一个在 stable Rust + 老版 russh 上能编译的版本
-# 0.9.x 用了 russh 0.60（pkcs5 API 变化导致编译失败）
-# 0.10.x 依赖 nightly + 新的 rustls API，目前还不稳定
+# 订阅节点使用 VLESS + Reality；0.8.2 尚未实现这两个协议。
+# 0.9.7 已支持 VLESS/Reality，且保持当前 Options FFI 接口不变。
 # default-features = false: 关掉默认的 aws-lc-rs
-clash-rs = { git = "https://github.com/Watfaq/clash-rs", tag = "v0.8.2", default-features = false }
-clash-lib = { git = "https://github.com/Watfaq/clash-rs", tag = "v0.8.2", default-features = false }
+clash-rs = { git = "https://github.com/Watfaq/clash-rs", tag = "v0.9.7", default-features = false }
+clash-lib = { git = "https://github.com/Watfaq/clash-rs", tag = "v0.9.7", default-features = false }
 
 # 异步运行时
 tokio = { version = "1", features = ["full"] }

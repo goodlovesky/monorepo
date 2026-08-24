@@ -24,6 +24,10 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$ROOT_DIR"
 
+# clash-rs 0.9.7 仍声明了若干已稳定的 feature gate；当前 stable
+# 编译器可实现这些能力，但需要允许该依赖通过 feature 属性检查。
+export RUSTC_BOOTSTRAP="${RUSTC_BOOTSTRAP:-1}"
+
 # 默认架构
 ARCHS_ALL=(
     "arm64-v8a"
@@ -80,7 +84,7 @@ for arch in "${ARCHS[@]}"; do
 
     cargo ndk \
         --target "$target" \
-        --android-api "$ANDROID_API_LEVEL" \
+        --platform "$ANDROID_API_LEVEL" \
         --output-dir "$JNI_LIBS_DIR" \
         build --release -p core-bridge
 

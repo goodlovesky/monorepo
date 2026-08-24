@@ -224,11 +224,7 @@ rules:
         write_test_config(&cfg);
 
         // 启动
-        let rc = start(
-            cfg.to_str().unwrap(),
-            dir.path().to_str().unwrap(),
-            None,
-        );
+        let rc = start(cfg.to_str().unwrap(), dir.path().to_str().unwrap(), None);
         eprintln!("start result: {rc:?}");
         if rc.is_ok() {
             assert!(is_running());

@@ -189,16 +189,14 @@ pub extern "C" fn proxy_version() -> *mut c_char {
 ///
 /// `home_dir` 和 `version` 必须是合法的 UTF-8 C 字符串（可为 NULL，但会导致错误）。
 #[no_mangle]
-pub extern "C" fn proxy_init(
-    home_dir: *const c_char,
-    version: *const c_char,
-    sdk: i32,
-) -> i32 {
+pub extern "C" fn proxy_init(home_dir: *const c_char, version: *const c_char, sdk: i32) -> i32 {
     ffi_guard!({
         let home = unsafe { read_c_str(home_dir, "home_dir")? };
         let ver = unsafe { read_c_str(version, "version")? };
 
-        let mut guard = state().lock().map_err(|e| CoreError::Internal(e.to_string()))?;
+        let mut guard = state()
+            .lock()
+            .map_err(|e| CoreError::Internal(e.to_string()))?;
         if guard.is_some() {
             return Err(CoreError::AlreadyInitialized);
         }
@@ -224,7 +222,9 @@ pub extern "C" fn proxy_init(
 #[no_mangle]
 pub extern "C" fn proxy_shutdown() -> i32 {
     ffi_guard!({
-        let mut guard = state().lock().map_err(|e| CoreError::Internal(e.to_string()))?;
+        let mut guard = state()
+            .lock()
+            .map_err(|e| CoreError::Internal(e.to_string()))?;
         if guard.is_none() {
             return Err(CoreError::NotInitialized);
         }
@@ -244,10 +244,11 @@ pub extern "C" fn proxy_shutdown() -> i32 {
 #[no_mangle]
 pub extern "C" fn proxy_query_state() -> *mut c_char {
     let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-        let guard = state().lock().map_err(|e| CoreError::Internal(e.to_string()))?;
-        let state = guard.as_ref().ok_or(CoreError::NotInitialized)?;
-        let json = serde_json::to_string(state)
+        let guard = state()
+            .lock()
             .map_err(|e| CoreError::Internal(e.to_string()))?;
+        let state = guard.as_ref().ok_or(CoreError::NotInitialized)?;
+        let json = serde_json::to_string(state).map_err(|e| CoreError::Internal(e.to_string()))?;
         Ok::<String, CoreError>(json)
     }));
 
@@ -402,6 +403,15 @@ pub extern "C" fn proxy_engine_status() -> *mut c_char {
 mod tests {
     use super::*;
 
+    static TEST_LOCK: OnceLock<std::sync::Mutex<()>> = OnceLock::new();
+
+    fn state_test_guard() -> std::sync::MutexGuard<'static, ()> {
+        TEST_LOCK
+            .get_or_init(|| std::sync::Mutex::new(()))
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
     fn make_cstr(s: &str) -> *mut c_char {
         CString::new(s).unwrap().into_raw()
     }
@@ -433,6 +443,7 @@ mod tests {
 
     #[test]
     fn test_init_shutdown() {
+        let _serial = state_test_guard();
         // 重置 state
         {
             let mut guard = state().lock().unwrap();
@@ -468,6 +479,7 @@ mod tests {
 
     #[test]
     fn test_query_state() {
+        let _serial = state_test_guard();
         // 重置
         {
             let mut guard = state().lock().unwrap();

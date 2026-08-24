@@ -23,8 +23,9 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 APP_DIR="$ROOT_DIR/app"
 TARGET_DIR="$ROOT_DIR/target"
 
-# 默认值
-BUILD_MODE="debug"
+# 默认值。注意:Flutter 实际产出的目录是 `Build/Products/Debug`(大写 D),
+# 即使传 --debug 小写;这里统一用大写避免路径错位。
+BUILD_MODE="Debug"
 DO_RUN=false
 RUST_ONLY=false
 FLUTTER_ONLY=false
@@ -33,8 +34,8 @@ FLUTTER_ONLY=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --run) DO_RUN=true; shift ;;
-        --release) BUILD_MODE="release"; shift ;;
-        --debug) BUILD_MODE="debug"; shift ;;
+        --release) BUILD_MODE="Release"; shift ;;
+        --debug) BUILD_MODE="Debug"; shift ;;
         --rust-only) RUST_ONLY=true; shift ;;
         --flutter-only) FLUTTER_ONLY=true; shift ;;
         -h|--help)
@@ -64,19 +65,11 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
     exit 1
 fi
 
-# PATH 里加 cargo（rustup）路径
-if [[ -d "$HOME/.cargo/bin" ]]; then
+# 优先使用 rustup stable，避免 Homebrew 的旧 rustc 抢在前面。
+if [[ -x "$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc" ]]; then
+    export PATH="$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$PATH"
+elif [[ -d "$HOME/.cargo/bin" ]]; then
     export PATH="$HOME/.cargo/bin:$PATH"
-fi
-
-if ! command -v cargo >/dev/null 2>&1; then
-    print_err "cargo 未找到，请先装 rustup"
-    exit 1
-fi
-
-if command -v rustup >/dev/null 2>&1; then
-    RUSTC_VER=$(rustc --version 2>/dev/null | awk '{print $2}')
-    print_step "使用 rustc $RUSTC_VER (来自 rustup)"
 fi
 
 if [[ -n "${FLUTTER_ROOT:-}" ]] && [[ -x "$FLUTTER_ROOT/bin/flutter" ]]; then
@@ -106,48 +99,18 @@ else
     print_step "使用 flutter $(flutter --version 2>/dev/null | head -1)"
 fi
 
-# ==================== 1. Build Rust ====================
+# ==================== 1. Desktop runtime ====================
 if [[ "$FLUTTER_ONLY" == false ]]; then
-    print_step "Building Rust core-bridge (mode: $BUILD_MODE)..."
-    cd "$ROOT_DIR"
-
-    if [[ "$BUILD_MODE" == "release" ]]; then
-        TARGET_SUBDIR="release"
-    else
-        TARGET_SUBDIR="debug"
-    fi
-
-    # clash-lib 0.8.2 用了 #![feature(cfg_version)]，需要 RUSTC_BOOTSTRAP=1
-    export RUSTC_BOOTSTRAP=1
-    if [[ "$BUILD_MODE" == "release" ]]; then
-        cargo build -p core-bridge --release
-    else
-        cargo build -p core-bridge
-    fi
-
-    DYLIB_PATH="$TARGET_DIR/$TARGET_SUBDIR/libcore_bridge.dylib"
-    if [[ ! -f "$DYLIB_PATH" ]]; then
-        print_err "dylib 没生成: $DYLIB_PATH"
-        exit 1
-    fi
-
-    print_ok "Rust build done: $DYLIB_PATH ($(du -h "$DYLIB_PATH" | cut -f1))"
+    print_step "桌面端使用随包 mihomo，不构建常驻特权 helper"
 fi
 
-# ==================== 2. 拷 dylib 到 macOS bundle ====================
+# ==================== 2. dylib 跳过(桌面端不依赖 FFI) ====================
+# 桌面端不再注入 libcore_bridge.dylib:
+#   - FFI 路径已废弃,运行时不会 DynamicLibrary.open
+#   - Android 端 dylib 由 build_android.sh 单独处理
 if [[ "$RUST_ONLY" == false ]]; then
-    APP_FRAMEWORKS_DIR="$APP_DIR/macos/Runner/Frameworks"
-    mkdir -p "$APP_FRAMEWORKS_DIR"
-
-    print_step "Copying dylib to Flutter bundle..."
-    if [[ -f "$DYLIB_PATH" ]]; then
-        cp "$DYLIB_PATH" "$APP_FRAMEWORKS_DIR/libcore_bridge.dylib"
-        install_name_tool -id "@rpath/libcore_bridge.dylib" "$APP_FRAMEWORKS_DIR/libcore_bridge.dylib" 2>/dev/null || true
-        print_ok "dylib copied to: $APP_FRAMEWORKS_DIR/libcore_bridge.dylib"
-    else
-        print_err "找不到 dylib: $DYLIB_PATH"
-        exit 1
-    fi
+    DYLIB_PATH=""  # 桌面端不构建 dylib
+    print_step "桌面端跳过 dylib 注入(走 mihomo HTTP API)"
 fi
 
 # ==================== 3. Flutter build ====================
@@ -158,19 +121,38 @@ if [[ "$FLUTTER_AVAILABLE" == false ]]; then
 fi
 
 if [[ "$RUST_ONLY" == false ]]; then
-    print_step "Running flutter build macos --$BUILD_MODE..."
+    # flutter CLI 接受小写 --debug/--release,但实际产出目录用大写 Debug/Release
+    FLUTTER_BUILD_MODE=$(echo "$BUILD_MODE" | tr '[:upper:]' '[:lower:]')
+    print_step "Running flutter build macos --$FLUTTER_BUILD_MODE..."
     cd "$APP_DIR"
-    flutter build macos --"$BUILD_MODE" 2>&1 | tail -20
+    flutter build macos --"$FLUTTER_BUILD_MODE" 2>&1 | tail -20
 
-    # 重要：Flutter build 不会自动把 libcore_bridge.dylib 拷到 .app/Contents/Frameworks/
-    # 我们手动复制一次（Xcode 不知道这个 dylib）
-    APP_BUILD_DIR="$APP_DIR/build/macos/Build/Products/$BUILD_MODE/app.app/Contents/Frameworks"
-    if [[ -d "$APP_BUILD_DIR" ]]; then
-        if [[ -f "$APP_FRAMEWORKS_DIR/libcore_bridge.dylib" ]]; then
-            cp "$APP_FRAMEWORKS_DIR/libcore_bridge.dylib" "$APP_BUILD_DIR/libcore_bridge.dylib"
-            print_ok "dylib injected into .app: $APP_BUILD_DIR/libcore_bridge.dylib"
-        fi
+    # 桌面端不注入 libcore_bridge.dylib(走 mihomo HTTP API,不走 FFI)
+    APP_BUILD_DIR="$APP_DIR/build/macos/Build/Products/$BUILD_MODE/Clash RS.app/Contents/Frameworks"
+
+    APP_RESOURCES_DIR="$APP_DIR/build/macos/Build/Products/$BUILD_MODE/Clash RS.app/Contents/Resources"
+    mkdir -p "$APP_RESOURCES_DIR"
+    rm -f "$APP_RESOURCES_DIR/clash-rs-helper"
+
+    # mihomo binary(TUN 模式核心,Go 写的,自 GitHub release 下载)
+    # 放 Resources/ 下，TUN 启动时按次请求管理员权限运行该固定二进制。
+    MIHOMO_SRC="$APP_DIR/macos/Runner/Resources/mihomo"
+    MIHOMO_DST="$APP_DIR/build/macos/Build/Products/$BUILD_MODE/Clash RS.app/Contents/Resources/mihomo"
+    if [[ -x "$MIHOMO_SRC" ]]; then
+        mkdir -p "$(dirname "$MIHOMO_DST")"
+        cp "$MIHOMO_SRC" "$MIHOMO_DST"
+        chmod +x "$MIHOMO_DST"
+        MIHOMO_VERSION="$("$MIHOMO_DST" -v 2>&1 | head -1 || echo unknown)"
+        print_ok "mihomo injected: $MIHOMO_DST (version: $MIHOMO_VERSION)"
+    else
+        print_warn "mihomo binary 不在 $MIHOMO_SRC,跳注入"
+        print_warn "TUN 模式需要 mihomo,请跑: ./tools/download_mihomo.sh"
     fi
+
+    # 注入资源后重新签名，确保本地 Release App 可通过完整性校验。
+    codesign --force --sign - "$MIHOMO_DST"
+    codesign --force --deep --sign - "$APP_DIR/build/macos/Build/Products/$BUILD_MODE/Clash RS.app"
+    codesign --verify --deep --strict "$APP_DIR/build/macos/Build/Products/$BUILD_MODE/Clash RS.app"
 fi
 
 # ==================== 4. Flutter run ====================
