@@ -82,14 +82,18 @@ jobs:
           $version = ((Select-String -Path app/pubspec.yaml -Pattern '^version:\s*([^+]+)\+').Matches[0].Groups[1].Value)
           $installer = Resolve-Path "dist/windows/ClashRS-Setup-$version-x64.exe"
           $installDir = Join-Path $env:RUNNER_TEMP 'ClashRS-Smoke'
-          & $installer /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- "/DIR=$installDir"
-          if ($LASTEXITCODE -ne 0) { throw "Installer failed: $LASTEXITCODE" }
+          $installProcess = Start-Process -FilePath $installer.Path -ArgumentList @(
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', "/DIR=$installDir"
+          ) -Wait -PassThru
+          if ($installProcess.ExitCode -ne 0) { throw "Installer failed: $($installProcess.ExitCode)" }
           @('clash_rs.exe', 'flutter_windows.dll', 'mihomo.exe', 'wintun.dll', 'data/icudtl.dat') | ForEach-Object {
             if (-not (Test-Path (Join-Path $installDir $_))) { throw "Installed file missing: $_" }
           }
           $uninstaller = Join-Path $installDir 'unins000.exe'
-          & $uninstaller /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
-          if ($LASTEXITCODE -ne 0) { throw "Uninstaller failed: $LASTEXITCODE" }
+          $uninstallProcess = Start-Process -FilePath $uninstaller -ArgumentList @(
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'
+          ) -Wait -PassThru
+          if ($uninstallProcess.ExitCode -ne 0) { throw "Uninstaller failed: $($uninstallProcess.ExitCode)" }
           if (Test-Path (Join-Path $installDir 'clash_rs.exe')) { throw 'Uninstall left clash_rs.exe behind' }
 
       - uses: actions/upload-artifact@v4
