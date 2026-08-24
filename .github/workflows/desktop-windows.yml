@@ -1,0 +1,96 @@
+name: Desktop Windows x64
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: Run Flutter analyze and tests
+        required: false
+        default: true
+        type: boolean
+  push:
+    branches: [feature/mihomo-desktop]
+    paths:
+      - "app/**"
+      - "tools/build_windows.ps1"
+      - "tools/download_mihomo_windows.ps1"
+      - "tools/windows-installer.iss"
+      - ".github/workflows/desktop-windows.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-x64:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Install Inno Setup
+        shell: powershell
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build, test and package
+        shell: powershell
+        run: |
+          $skipTests = '${{ github.event_name == 'workflow_dispatch' && inputs.run_tests == false }}' -eq 'true'
+          if ($skipTests) {
+            ./tools/build_windows.ps1 -Architecture x64 -Installer -Clean -SkipTests
+          } else {
+            ./tools/build_windows.ps1 -Architecture x64 -Installer -Clean
+          }
+
+      - name: Verify packaged resources
+        shell: powershell
+        run: |
+          $release = 'app/build/windows/x64/runner/Release'
+          @('clash_rs.exe', 'flutter_windows.dll', 'mihomo.exe', 'wintun.dll', 'data/icudtl.dat', 'data/flutter_assets/AssetManifest.bin') | ForEach-Object {
+            if (-not (Test-Path (Join-Path $release $_))) { throw "Missing $_" }
+          }
+          $version = ((Select-String -Path app/pubspec.yaml -Pattern '^version:\s*([^+]+)\+').Matches[0].Groups[1].Value)
+          @(
+            "dist/windows/ClashRS-$version-windows-x64-portable.zip",
+            "dist/windows/ClashRS-Setup-$version-x64.exe",
+            'dist/windows/BUILD-MANIFEST.json',
+            'dist/windows/BUILD-ENVIRONMENT.txt',
+            'dist/windows/SHA256.txt'
+          ) | ForEach-Object { if (-not (Test-Path $_)) { throw "Missing artifact: $_" } }
+          Get-Content dist/windows/SHA256.txt
+
+      - name: Install and uninstall smoke test
+        shell: powershell
+        run: |
+          $version = ((Select-String -Path app/pubspec.yaml -Pattern '^version:\s*([^+]+)\+').Matches[0].Groups[1].Value)
+          $installer = Resolve-Path "dist/windows/ClashRS-Setup-$version-x64.exe"
+          $installDir = Join-Path $env:RUNNER_TEMP 'ClashRS-Smoke'
+          & $installer /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- "/DIR=$installDir"
+          if ($LASTEXITCODE -ne 0) { throw "Installer failed: $LASTEXITCODE" }
+          @('clash_rs.exe', 'flutter_windows.dll', 'mihomo.exe', 'wintun.dll', 'data/icudtl.dat') | ForEach-Object {
+            if (-not (Test-Path (Join-Path $installDir $_))) { throw "Installed file missing: $_" }
+          }
+          $uninstaller = Join-Path $installDir 'unins000.exe'
+          & $uninstaller /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+          if ($LASTEXITCODE -ne 0) { throw "Uninstaller failed: $LASTEXITCODE" }
+          if (Test-Path (Join-Path $installDir 'clash_rs.exe')) { throw 'Uninstall left clash_rs.exe behind' }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Clash-RS-Windows-x64
+          path: |
+            dist/windows/ClashRS-*-windows-x64-portable.zip
+            dist/windows/ClashRS-Setup-*-x64.exe
+            dist/windows/SHA256.txt
+            dist/windows/BUILD-MANIFEST.json
+            dist/windows/BUILD-ENVIRONMENT.txt
+          if-no-files-found: error
+          retention-days: 14

@@ -10,6 +10,7 @@
 
 import 'dart:ffi';
 import 'dart:io';
+
 import 'package:ffi/ffi.dart';
 
 // ========================================================================
@@ -22,9 +23,15 @@ typedef _ProxyVersionDart = Pointer<Utf8> Function();
 
 // int32_t proxy_init(const char *home_dir, const char *version, int32_t sdk);
 typedef _ProxyInitNative = Int32 Function(
-    Pointer<Utf8> home, Pointer<Utf8> version, Int32 sdk);
+  Pointer<Utf8> home,
+  Pointer<Utf8> version,
+  Int32 sdk,
+);
 typedef _ProxyInitDart = int Function(
-    Pointer<Utf8> home, Pointer<Utf8> version, int sdk);
+  Pointer<Utf8> home,
+  Pointer<Utf8> version,
+  int sdk,
+);
 
 // int32_t proxy_shutdown(void);
 typedef _ProxyShutdownNative = Int32 Function();
@@ -40,9 +47,15 @@ typedef _ProxyPongDart = Pointer<Utf8> Function(Pointer<Utf8> input);
 
 // int32_t proxy_engine_start(const char *config_path, const char *cwd, const char *log_file);
 typedef _ProxyEngineStartNative = Int32 Function(
-    Pointer<Utf8> config, Pointer<Utf8> cwd, Pointer<Utf8> log);
+  Pointer<Utf8> config,
+  Pointer<Utf8> cwd,
+  Pointer<Utf8> log,
+);
 typedef _ProxyEngineStartDart = int Function(
-    Pointer<Utf8> config, Pointer<Utf8> cwd, Pointer<Utf8> log);
+  Pointer<Utf8> config,
+  Pointer<Utf8> cwd,
+  Pointer<Utf8> log,
+);
 
 // int32_t proxy_engine_stop(void);
 typedef _ProxyEngineStopNative = Int32 Function();
@@ -126,17 +139,43 @@ class ClashBridge {
 
   ClashBridge._() {
     _lib = _loadLibrary();
-    _version = _lib.lookupFunction<_ProxyVersionNative, _ProxyVersionDart>('proxy_version');
+    _version = _lib.lookupFunction<_ProxyVersionNative, _ProxyVersionDart>(
+      'proxy_version',
+    );
     _init = _lib.lookupFunction<_ProxyInitNative, _ProxyInitDart>('proxy_init');
-    _shutdown = _lib.lookupFunction<_ProxyShutdownNative, _ProxyShutdownDart>('proxy_shutdown');
-    _queryState = _lib.lookupFunction<_ProxyQueryStateNative, _ProxyQueryStateDart>('proxy_query_state');
+    _shutdown = _lib.lookupFunction<_ProxyShutdownNative, _ProxyShutdownDart>(
+      'proxy_shutdown',
+    );
+    _queryState = _lib
+        .lookupFunction<_ProxyQueryStateNative, _ProxyQueryStateDart>(
+          'proxy_query_state',
+        );
     _pong = _lib.lookupFunction<_ProxyPongNative, _ProxyPongDart>('proxy_pong');
-    _engineStart = _lib.lookupFunction<_ProxyEngineStartNative, _ProxyEngineStartDart>('proxy_engine_start');
-    _engineStop = _lib.lookupFunction<_ProxyEngineStopNative, _ProxyEngineStopDart>('proxy_engine_stop');
-    _engineIsRunning = _lib.lookupFunction<_ProxyEngineIsRunningNative, _ProxyEngineIsRunningDart>('proxy_engine_is_running');
-    _engineStatus = _lib.lookupFunction<_ProxyEngineStatusNative, _ProxyEngineStatusDart>('proxy_engine_status');
-    _lastErrorMessage = _lib.lookupFunction<_ProxyLastErrorMessageNative, _ProxyLastErrorMessageDart>('proxy_last_error_message');
-    _freeString = _lib.lookupFunction<_ProxyFreeStringNative, _ProxyFreeStringDart>('proxy_free_string');
+    _engineStart = _lib
+        .lookupFunction<_ProxyEngineStartNative, _ProxyEngineStartDart>(
+          'proxy_engine_start',
+        );
+    _engineStop = _lib
+        .lookupFunction<_ProxyEngineStopNative, _ProxyEngineStopDart>(
+          'proxy_engine_stop',
+        );
+    _engineIsRunning = _lib
+        .lookupFunction<_ProxyEngineIsRunningNative, _ProxyEngineIsRunningDart>(
+          'proxy_engine_is_running',
+        );
+    _engineStatus = _lib
+        .lookupFunction<_ProxyEngineStatusNative, _ProxyEngineStatusDart>(
+          'proxy_engine_status',
+        );
+    _lastErrorMessage = _lib
+        .lookupFunction<
+          _ProxyLastErrorMessageNative,
+          _ProxyLastErrorMessageDart
+        >('proxy_last_error_message');
+    _freeString = _lib
+        .lookupFunction<_ProxyFreeStringNative, _ProxyFreeStringDart>(
+          'proxy_free_string',
+        );
   }
 
   static final ClashBridge instance = ClashBridge._();
@@ -155,7 +194,11 @@ class ClashBridge {
   }
 
   /// 初始化"门面"状态（Phase 0.2 占位接口）
-  int init({required String homeDir, required String version, required int sdk}) {
+  int init({
+    required String homeDir,
+    required String version,
+    required int sdk,
+  }) {
     final homePtr = homeDir.toNativeUtf8();
     final verPtr = version.toNativeUtf8();
     try {
@@ -207,7 +250,11 @@ class ClashBridge {
 
   /// 启动代理引擎。
   /// 0 = 成功，非 0 = 失败（用 [lastErrorMessage] 看具体原因）。
-  int engineStart({required String configPath, required String cwd, String? logFile}) {
+  int engineStart({
+    required String configPath,
+    required String cwd,
+    String? logFile,
+  }) {
     final configPtr = configPath.toNativeUtf8();
     final cwdPtr = cwd.toNativeUtf8();
     final logPtr = (logFile == null) ? nullptr : logFile.toNativeUtf8();

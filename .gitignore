@@ -50,3 +50,16 @@ Thumbs.db
 # 临时
 *.log
 *.tmp
+/.codex-debug/
+/.superpowers/
+/dist/
+/output/
+/tmp/
+
+# 平台打包时下载或生成的运行时二进制
+/app/macos/Runner/Resources/mihomo
+/app/windows/runner/resources/mihomo.exe
+/app/windows/runner/resources/wintun.dll
+/app/windows/runner/resources/WINDOWS-RUNTIME.txt
+/app/windows/runner/resources/WINTUN-LICENSE.txt
+/app/test/failures/

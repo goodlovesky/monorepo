@@ -1,123 +1,59 @@
-# Proxy App Monorepo
+# Clash RS
 
-> 全平台代理软件 —— **Flutter UI** + **Rust 内核 (clash-rs)** + 平台原生 VPN
+Flutter 全平台代理客户端。Android 保留 Rust `core-bridge` + `VpnService`；macOS 与 Windows 共用同一套 Flutter 桌面 UI，并统一使用 mihomo 作为桌面代理核心。
 
-## 项目状态
+## 当前实现
 
-🚧 **Phase 0: 技术验证**（进行中）
+- Android：`VpnService`、应用分流、Rust FFI 核心。
+- macOS：系统代理、mihomo TUN、网络快照恢复、菜单栏、单实例、通用架构 App/DMG。
+- Windows x64：系统代理、mihomo + Wintun TUN、托盘、单实例、固定窗口、便携包和 Inno Setup 脚本。
+- 桌面 UI：首页、代理、订阅、连接、规则、日志、测试、基础/高级设置；设计参考位于 `docs/guide/`。
 
 ## 架构
 
-```
-┌─────────────────────────────────────┐
-│  Flutter (Dart) — UI / 业务编排     │
-└─────────────────┬───────────────────┘
-                  │ FFI / MethodChannel
-┌─────────────────▼───────────────────┐
-│  Rust — clash-rs 内核 + FFI 桥      │
-│  (核心协议 / 规则 / DNS / TUN)       │
-└─────────────────┬───────────────────┘
-                  │ 系统 API
-┌─────────────────▼───────────────────┐
-│  平台原生                            │
-│  Android VpnService / iOS NetworkExtension / macOS utun / Windows wintun / Linux tun │
-└─────────────────────────────────────┘
+```text
+Flutter shared desktop UI
+  ├─ ProxyAppController ── mihomo REST API (127.0.0.1:9090)
+  ├─ macOS NetworkService ── networksetup / 按次管理员授权 / utun
+  └─ Windows NetworkService ── WinINet registry / mihomo / Wintun
+
+Android UI ── MethodChannel + Rust core-bridge ── Android VpnService
 ```
 
-## 仓库结构
-
-```
-.
-├── crates/                  # Rust workspace
-│   └── core-bridge/         # FFI 桥（暴露给 Dart 的 C ABI）
-├── app/                     # Flutter 应用
-├── tools/                   # 构建脚本
-└── docs/                    # 设计文档
-```
-
-## 开发
-
-### 前置依赖
-
-| 工具 | 版本 | 用途 |
-|---|---|---|
-| Rust | 1.91+ (推荐 stable) | 内核开发。clash-lib 0.10.7 需要 rustc ≥ 1.91（shadowsocks, smoltcp） |
-| Cargo | 1.91+ | Rust 包管理 |
-| **rustup** | 1.29+ | **推荐用 rustup 管版本**，避免和 Homebrew rust 冲突 |
-| Flutter | 3.x stable | UI 开发 |
-| Dart | 3.x | Flutter 配套 |
-| Android NDK | r26+ | Android .so 编译 |
-| Xcode | 15+ | iOS / macOS |
-| CMake | 3.29+ | clash-rs 编译依赖 |
-| nasm | latest | Windows 编译 |
-
-### ⚠️ Rust 升级注意
-
-如果之前用 Homebrew 装了 rust，但版本 < 1.91，**需要切到 rustup**：
+## 开发验证
 
 ```bash
-# 装 rustup（已装可跳）
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+cd app
+flutter pub get
+flutter analyze
+flutter test
 
-# 把 cargo 路径加到 PATH（zsh）
-echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-
-# 验证
-rustc --version   # 应该 >= 1.91
+cd ..
+PATH="$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$PATH" \
+RUSTC_BOOTSTRAP=1 cargo test --workspace
 ```
 
-### 编译 Rust
+## 构建
 
 ```bash
-# 检查
-cargo check --workspace
+# macOS arm64 + x86_64 App/DMG
+./tools/download_mihomo.sh
+./tools/build_macos.sh
 
-# 测试
-cargo test --workspace
-
-# 编译 release
-cargo build --release
+# Windows x64（在 Windows + Visual Studio/Flutter 环境执行）
+powershell -ExecutionPolicy Bypass -File tools/build_windows.ps1 -Installer -Clean
 ```
 
-### 编译 FFI 库
+输出：
 
-```bash
-# macOS
-cargo build --release --target aarch64-apple-darwin
-cargo build --release --target x86_64-apple-darwin
+- `dist/macos/Clash-RS-macOS.dmg`
+- `dist/windows/ClashRS-1.0.0-windows-x64-portable.zip`
+- `dist/windows/ClashRS-Setup-1.0.0-x64.exe`
+- `dist/windows/BUILD-MANIFEST.json`
+- `dist/windows/SHA256.txt`
 
-# iOS
-cargo build --release --target aarch64-apple-ios
-cargo build --release --target aarch64-apple-ios-sim
+详细说明见 `ARCHITECTURE.md`、`NETWORK_MODES.md` 和 `docs/desktop-verification.md`。
 
-# Android
-cargo build --release --target aarch64-linux-android
-cargo build --release --target armv7-linux-androideabi
-```
-
-### 生成 C 头文件
-
-```bash
-cargo install cbindgen
-cbindgen --config cbindgen.toml --crate core-bridge --output bindings/core_bridge.h
-```
-
-## 路线图
-
-- [x] **Phase 0.1**: 搭 monorepo 骨架
-- [ ] **Phase 0.2**: 最小 Rust FFI demo
-- [ ] **Phase 0.3**: 集成 clash-rs
-- [ ] **Phase 0.4**: Flutter app 骨架
-- [ ] **Phase 1**: Rust FFI 完整封装
-- [ ] **Phase 2**: Flutter UI
-- [ ] **Phase 3**: Android VpnService
-- [ ] **Phase 4**: iOS NetworkExtension
-- [ ] **Phase 5**: 完整功能
-- [ ] **Phase 6**: 桌面平台
-- [ ] **Phase 7**: 优化打磨
-- [ ] **Phase 8**: 灰度发布
-
-## 协议
+## License
 
 GPL-3.0-or-later

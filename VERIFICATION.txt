@@ -1,0 +1,112 @@
+Clash RS macOS P0/P1 completion verification
+============================================
+BRANCH=feature/mihomo-desktop
+CHANGED_FIELD=macOS TUN privilege boundary, PID identity, cleanup verification, external-core watchdog, sleep/wake/network recovery, aggregate proxy restore, LaunchAgent registration, single-instance handling, uninstall cleanup, notarization order
+WORKSPACE=$PROJECT_ROOT
+ORIGINAL_HASH_MANIFEST=$PROJECT_ROOT/.codex-debug/macos-p0p1-20260824-1520/ORIGINAL_HASHES.txt
+
+ARTIFACTS
+MODIFIED_FILE=$PROJECT_ROOT/.codex-debug/macos-p0p1-20260824-1520/MODIFIED_FILE
+DIFF_FILE=$PROJECT_ROOT/.codex-debug/macos-p0p1-20260824-1520/DIFF_FILE
+VERIFICATION=$PROJECT_ROOT/.codex-debug/macos-p0p1-20260824-1520/VERIFICATION.txt
+ROLLBACK=$PROJECT_ROOT/.codex-debug/macos-p0p1-20260824-1520/ROLLBACK.sh
+
+BASELINE
+COMMAND=cd $PROJECT_ROOT/app && flutter analyze && flutter test
+INPUT=pre-change workspace captured under .codex-debug/macos-p0p1-20260824-1520/original
+LITERAL_OUTPUT=No issues found! (ran in 3.2s)
+LITERAL_OUTPUT=00:16 +84: All tests passed!
+EXIT_STATUS=0
+RESULT=baseline analysis and behavior passed
+
+MODIFIED
+COMMAND=cd $PROJECT_ROOT && ./tools/build_macos.sh
+INPUT=modified P0/P1 source plus bundled universal mihomo; SIGN_IDENTITY=-; NOTARY_PROFILE unset
+LITERAL_OUTPUT=No issues found! (ran in 3.0s)
+LITERAL_OUTPUT=00:13 +88: All tests passed!
+LITERAL_OUTPUT=Built: $PROJECT_ROOT/dist/macos/Clash-RS-macOS.dmg
+EXIT_STATUS=0
+RESULT=analysis, 88 tests, Release build, ad-hoc signing and DMG creation passed
+
+ROLLBACK
+COMMAND=cd $PROJECT_ROOT && .codex-debug/macos-p0p1-20260824-1520/VERIFY_ROLLBACK_COPY.sh
+INPUT=isolated copy of all baseline-captured paths; live workspace excluded
+LITERAL_OUTPUT=ROLLBACK_VERIFIED files=30 absent=3 legacy_helper=restored
+EXIT_STATUS=0
+RESTORED_BEHAVIOR=all 30 restored SHA-256 values match original files; three baseline-absent paths are absent; legacy helper source/member and helper-gated UI are restored in the isolated copy
+WORKSPACE_STATUS=live workspace remains modified
+
+MACOS_RELEASE
+COMMAND=hdiutil verify $PROJECT_ROOT/dist/macos/Clash-RS-macOS.dmg
+INPUT=modified Release DMG
+LITERAL_OUTPUT=hdiutil: verify: checksum of "dist/macos/Clash-RS-macOS.dmg" is VALID
+EXIT_STATUS=0
+DMG_SHA256=919197ae9ab885ca12de9fb7a52e0ef405b1f6d82f73aba421c4a3e6a8455fb4
+PACKAGE_CHECK=App and DMG contain no clash-rs-helper; deep strict codesign valid
+LAUNCH_COMMAND=/usr/bin/open -n $PROJECT_ROOT/app/build/macos/Build/Products/Release/Clash\ RS.app (executed twice)
+LITERAL_OUTPUT=RUNNING_INSTANCES=1
+EXIT_STATUS=0
+LAUNCH_RESULT=latest Release process PID 14693 is running; duplicate instance exited
+
+EXTERNAL_RELEASE_INPUT
+Developer ID/notary Keychain profile is not present on this machine. The completed script enforces App notarize/staple before DMG creation, then DMG notarize/staple and Gatekeeper assessment when those inputs are supplied.
+
+WINDOWS_X64_PACKAGING
+=====================
+BRANCH=feature/mihomo-desktop
+CHANGED_FIELD=Windows x64 reproducible runtime download, versioned portable/installer packaging, graceful upgrade/uninstall exit, build manifest, CI install smoke test, Clash RS executable metadata
+ARTIFACT_ROOT=$PROJECT_ROOT/output/windows-package-transaction-20260824-165247
+MODIFIED_FILE=$PROJECT_ROOT/output/windows-package-transaction-20260824-165247/MODIFIED_FILE
+DIFF_FILE=$PROJECT_ROOT/output/windows-package-transaction-20260824-165247/DIFF_FILE
+VERIFICATION=$PROJECT_ROOT/output/windows-package-transaction-20260824-165247/VERIFICATION.txt
+ROLLBACK=$PROJECT_ROOT/output/windows-package-transaction-20260824-165247/ROLLBACK.sh
+
+BASELINE
+COMMAND=cd $PROJECT_ROOT/app && flutter analyze && flutter test
+INPUT=pre-Windows-packaging workspace captured in output/windows-package-transaction-20260824-165247/original
+LITERAL_OUTPUT=No issues found! (ran in 3.0s)
+LITERAL_OUTPUT=00:13 +88: All tests passed!
+EXIT_STATUS=0
+RESULT=existing desktop analysis and behavior passed before Windows packaging changes
+
+MODIFIED
+COMMAND=cd $PROJECT_ROOT/app && flutter analyze && flutter test
+INPUT=Windows packaging implementation plus packaging contract tests
+LITERAL_OUTPUT=No issues found! (ran in 3.4s)
+LITERAL_OUTPUT=00:13 +93: All tests passed!
+EXIT_STATUS=0
+RESULT=analysis and all 93 tests passed; five Windows packaging contract tests added
+
+POWERSHELL_PARSE
+COMMAND=/tmp/pwsh/pwsh -NoLogo -NoProfile -Command '[System.Management.Automation.Language.Parser]::ParseFile(...)'
+INPUT=tools/build_windows.ps1 and tools/download_mihomo_windows.ps1
+LITERAL_OUTPUT=POWERSHELL_PARSE_OK tools/build_windows.ps1
+LITERAL_OUTPUT=POWERSHELL_PARSE_OK tools/download_mihomo_windows.ps1
+EXIT_STATUS=0
+RESULT=both PowerShell build scripts parse without syntax errors
+
+WORKFLOW_AND_INSTALLER_CONTRACT
+COMMAND=/tmp/actionlint/actionlint .github/workflows/desktop-windows.yml
+INPUT=Windows x64 GitHub Actions workflow
+LITERAL_OUTPUT=ACTIONLINT_OK
+EXIT_STATUS=0
+COMMAND=python3 Inno contract assertions
+INPUT=tools/windows-installer.iss
+LITERAL_OUTPUT=INNO_CONTRACT_OK checks=6
+EXIT_STATUS=0
+RESULT=workflow syntax and installer release contract passed
+
+WINDOWS_ARTIFACT_BOUNDARY
+COMMAND=.\\tools\\build_windows.ps1 -Architecture x64 -Installer -Clean
+INPUT=must run on Windows with Visual Studio Desktop C++, Flutter and Inno Setup
+EXPECTED_OUTPUT=ClashRS-1.0.0-windows-x64-portable.zip; ClashRS-Setup-1.0.0-x64.exe; BUILD-MANIFEST.json; BUILD-ENVIRONMENT.txt; SHA256.txt
+STATUS=implemented and CI-wired; Windows PE/installer execution is performed by .github/workflows/desktop-windows.yml
+
+WINDOWS_PACKAGING_ROLLBACK
+COMMAND=$PROJECT_ROOT/output/windows-package-transaction-20260824-165247/ROLLBACK.sh $PROJECT_ROOT/output/windows-package-transaction-20260824-165247/rollback-fixture
+INPUT=isolated copy of all 15 baseline-captured files plus two baseline-absent files; live workspace excluded
+LITERAL_OUTPUT=ROLLBACK_APPLIED files=15 absent=2 target=$PROJECT_ROOT/output/windows-package-transaction-20260824-165247/rollback-fixture
+LITERAL_OUTPUT=ROLLBACK_VERIFIED files=15 absent=2
+EXIT_STATUS=0
+RESTORED_BEHAVIOR=all baseline SHA-256 values match and the two new packaging files are absent in the rollback fixture
+WORKSPACE_STATUS=live workspace remains modified with Windows packaging implementation
