@@ -56,6 +56,10 @@ void main() {
       contains('BINARY_NAME "clash_rs"'),
     );
     expect(
+      repo('app/linux/runner/my_application.cc'),
+      contains('gtk_window_set_default_size(window, 960, 720)'),
+    );
+    expect(
       repo('app/lib/platform/desktop/desktop_network_service.dart'),
       contains('Platform.isLinux'),
     );
