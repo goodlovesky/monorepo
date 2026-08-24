@@ -55,6 +55,7 @@ Thumbs.db
 /dist/
 /output/
 /tmp/
+/docs/guide/
 
 # 平台打包时下载或生成的运行时二进制
 /app/macos/Runner/Resources/mihomo

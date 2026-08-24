@@ -4,7 +4,7 @@
 >
 > 适用平台：macOS、Windows
 >
-> 参考资料：`docs/guide/mac-1001.png` ～ `docs/guide/mac-1012.png`
+> UI 参考截图仅保存在本地，不纳入版本库。
 > 实施记录：共享 Flutter 桌面 UI、mihomo 核心与两端网络适配已落地。
 
 ## 1. 项目目标
