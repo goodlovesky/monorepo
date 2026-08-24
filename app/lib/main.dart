@@ -38,7 +38,8 @@ class ProxyApp extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: themeController,
     builder: (context, _) {
-      final isDesktop = Platform.isMacOS || Platform.isWindows;
+      final isDesktop =
+          Platform.isMacOS || Platform.isWindows || Platform.isLinux;
       final locale = switch (themeController.language) {
         'en-US' => const Locale('en', 'US'),
         _ => const Locale('zh', 'CN'),

@@ -1497,6 +1497,12 @@ class ProxyAppController extends ChangeNotifier {
             File('${Directory.current.path}/macos/Runner/Resources/mihomo'),
             File('${Directory.current.path}/app/macos/Runner/Resources/mihomo'),
           ]
+        : Platform.isLinux
+        ? [
+            File('${executable.parent.path}/mihomo'),
+            File('${Directory.current.path}/linux/runner/resources/mihomo'),
+            File('${Directory.current.path}/app/linux/runner/resources/mihomo'),
+          ]
         : [
             File('${executable.parent.path}/mihomo.exe'),
             File(
@@ -1522,7 +1528,10 @@ class ProxyAppController extends ChangeNotifier {
             '-Command',
             script,
           ])
-        : await Process.run('/bin/zsh', ['-lc', script]);
+        : await Process.run(Platform.isLinux ? '/bin/bash' : '/bin/zsh', [
+            '-lc',
+            script,
+          ]);
     if (result.exitCode != 0) {
       throw StateError(
         '启动脚本失败（exit=${result.exitCode}）：${_redact('${result.stderr}')}',
@@ -2017,6 +2026,25 @@ class ProxyAppController extends ChangeNotifier {
               '/f',
             ];
       await Process.run('reg.exe', args);
+    } else if (Platform.isLinux) {
+      final home = Platform.environment['HOME'];
+      if (home == null) return;
+      final configHome =
+          Platform.environment['XDG_CONFIG_HOME'] ?? '$home/.config';
+      final file = File('$configHome/autostart/clash-rs.desktop');
+      if (!value.launchAtStartup) {
+        if (await file.exists()) await file.delete();
+        return;
+      }
+      await file.parent.create(recursive: true);
+      final executable = Platform.resolvedExecutable.replaceAll(' ', r'\ ');
+      await file.writeAsString('''[Desktop Entry]
+Type=Application
+Name=Clash RS
+Exec=$executable${value.silentStart ? ' --silent' : ''}
+Terminal=false
+X-GNOME-Autostart-enabled=true
+''', flush: true);
     }
   }
 

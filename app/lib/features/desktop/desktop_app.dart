@@ -323,6 +323,8 @@ class _DesktopAppState extends State<DesktopApp> with WidgetsBindingObserver {
   Future<void> _openExternalUrl(String url) async {
     final result = Platform.isWindows
         ? await Process.run('cmd.exe', ['/c', 'start', '', url])
+        : Platform.isLinux
+        ? await Process.run('xdg-open', [url])
         : await Process.run('open', [url]);
     if (result.exitCode != 0 && mounted) {
       ScaffoldMessenger.of(context)

@@ -58,6 +58,10 @@ Thumbs.db
 
 # 平台打包时下载或生成的运行时二进制
 /app/macos/Runner/Resources/mihomo
+/app/macos/Runner/Resources/*.dat
+/app/macos/Runner/Resources/*.mmdb
+/app/linux/runner/resources/mihomo
+/app/linux/runner/resources/LINUX-RUNTIME.txt
 /app/windows/runner/resources/mihomo.exe
 /app/windows/runner/resources/wintun.dll
 /app/windows/runner/resources/WINDOWS-RUNTIME.txt

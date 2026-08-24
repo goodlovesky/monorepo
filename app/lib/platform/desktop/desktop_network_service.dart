@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show Listenable;
 
 import '../macos/mac_network_service.dart';
+import '../linux/linux_network_service.dart';
 import '../windows/windows_network_service.dart';
 
 enum DesktopNetworkMode { off, systemProxy, tun }
@@ -32,5 +33,6 @@ abstract interface class DesktopNetworkService implements Listenable {
 
 DesktopNetworkService createDesktopNetworkService() {
   if (Platform.isWindows) return WindowsNetworkService();
+  if (Platform.isLinux) return LinuxNetworkService();
   return MacNetworkService();
 }
