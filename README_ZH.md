@@ -22,13 +22,14 @@
 
 | 下载内容 | 下载位置 | 说明 |
 | --- | --- | --- |
-| 稳定安装包 | [下载最新版](https://github.com/goodlovesky/monorepo/releases/latest) | 带版本号的安装包、便携包、构建清单和 SHA-256 校验文件 |
+| macOS 1.0.0 | [直接下载 DMG](https://github.com/goodlovesky/monorepo/releases/download/v1.0.0/Clash-RS-macOS.dmg) | Universal DMG，使用 ad-hoc 签名，尚未公证 |
+| 稳定安装包 | [下载最新版](https://github.com/goodlovesky/monorepo/releases/latest) | 已发布的安装包、构建清单和 SHA-256 校验文件 |
 | 历史版本 | [全部 Releases](https://github.com/goodlovesky/monorepo/releases) | 查看旧版本和版本说明 |
 | Windows x64 测试构建 | [Windows Actions](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-windows.yml) | 打开成功任务并下载 `Clash-RS-Windows-x64` |
 | Linux x64 测试构建 | [Linux Actions](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-linux.yml) | 打开成功任务并下载 `Clash-RS-Linux-x64` |
 | 源码 | [ZIP](https://github.com/goodlovesky/monorepo/archive/refs/heads/main.zip) · [tar.gz](https://github.com/goodlovesky/monorepo/archive/refs/heads/main.tar.gz) | 当前 `main` 分支源码快照 |
 
-GitHub Actions 产物主要用于测试，并且只保留有限时间。普通安装优先使用 Releases 下载页。
+当前 Release 已提供 macOS DMG；Windows 和 Linux 安装包正在整理到 Release，在此之前可从上方已经成功的 Actions 任务下载。GitHub Actions 产物主要用于测试，并且只保留有限时间。
 
 ## 项目能做什么
 

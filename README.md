@@ -22,13 +22,14 @@ Use the [GitHub Releases download page](https://github.com/goodlovesky/monorepo/
 
 | Download | Location | Notes |
 | --- | --- | --- |
-| Stable packages | [Latest release](https://github.com/goodlovesky/monorepo/releases/latest) | Versioned installers, portable packages, manifests, and SHA-256 checksums |
+| macOS 1.0.0 | [Download DMG](https://github.com/goodlovesky/monorepo/releases/download/v1.0.0/Clash-RS-macOS.dmg) | Universal DMG, ad-hoc signed and not notarized |
+| Stable packages | [Latest release](https://github.com/goodlovesky/monorepo/releases/latest) | Published packages, manifests, and SHA-256 checksums |
 | All published versions | [All releases](https://github.com/goodlovesky/monorepo/releases) | Previous releases and release notes |
 | Windows x64 development build | [Windows Actions](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-windows.yml) | Open a successful run and download `Clash-RS-Windows-x64` |
 | Linux x64 development build | [Linux Actions](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-linux.yml) | Open a successful run and download `Clash-RS-Linux-x64` |
 | Source code | [ZIP](https://github.com/goodlovesky/monorepo/archive/refs/heads/main.zip) · [tar.gz](https://github.com/goodlovesky/monorepo/archive/refs/heads/main.tar.gz) | Source snapshot of the current `main` branch |
 
-GitHub Actions artifacts are intended for testing and are retained for a limited time. Prefer the release page for normal installation.
+The current release provides the macOS DMG. Windows and Linux packages are available from the successful Actions runs shown above while their release assets are being prepared. GitHub Actions artifacts are intended for testing and are retained for a limited time.
 
 ## Features
 
