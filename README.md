@@ -2,11 +2,33 @@
 
 [简体中文](README_ZH.md) · English
 
-Clash RS is a cross-platform Flutter proxy client for Android, macOS, Windows, and Linux. It provides a shared desktop interface for subscriptions, proxy nodes, rules, active connections, logs, traffic statistics, network tests, system proxy, and TUN mode.
+[![Windows x64](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-windows.yml/badge.svg)](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-windows.yml)
+[![Linux x64](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-linux.yml/badge.svg)](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-linux.yml)
+![Version](https://img.shields.io/badge/version-1.0.0-1688f0)
+![Flutter](https://img.shields.io/badge/Flutter-cross--platform-02569B?logo=flutter&logoColor=white)
+![Platforms](https://img.shields.io/badge/platforms-Android%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux-2d3345)
+
+**Clash RS is a cross-platform Flutter proxy client, VPN client, and Mihomo GUI for Android, macOS, Windows, and Linux.** It combines subscription management, proxy-node selection, latency testing, Rule/Global/Direct routing, system proxy, TUN mode, active connections, logs, IP information, and real-time traffic monitoring in one interface.
 
 Desktop builds use a pinned [mihomo](https://github.com/MetaCubeX/mihomo) core. Android uses `VpnService` together with the Rust `core-bridge` library.
 
 > Current application version: **1.0.0**. The desktop window is fixed at **960 × 720**.
+
+**[Download](#download)** · **[Quick start](#quick-start-for-users)** · **[Build packages](#build-packages)** · **[中文文档](README_ZH.md)**
+
+## Download
+
+Use the [GitHub Releases download page](https://github.com/goodlovesky/monorepo/releases/latest) for ready-to-install Clash RS packages and checksum files.
+
+| Download | Location | Notes |
+| --- | --- | --- |
+| Stable packages | [Latest release](https://github.com/goodlovesky/monorepo/releases/latest) | Versioned installers, portable packages, manifests, and SHA-256 checksums |
+| All published versions | [All releases](https://github.com/goodlovesky/monorepo/releases) | Previous releases and release notes |
+| Windows x64 development build | [Windows Actions](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-windows.yml) | Open a successful run and download `Clash-RS-Windows-x64` |
+| Linux x64 development build | [Linux Actions](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-linux.yml) | Open a successful run and download `Clash-RS-Linux-x64` |
+| Source code | [ZIP](https://github.com/goodlovesky/monorepo/archive/refs/heads/main.zip) · [tar.gz](https://github.com/goodlovesky/monorepo/archive/refs/heads/main.tar.gz) | Source snapshot of the current `main` branch |
+
+GitHub Actions artifacts are intended for testing and are retained for a limited time. Prefer the release page for normal installation.
 
 ## Features
 

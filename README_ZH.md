@@ -2,11 +2,33 @@
 
 简体中文 · [English](README.md)
 
-Clash RS 是一个使用 Flutter 开发的全平台代理客户端，支持 Android、macOS、Windows 和 Linux。桌面端共用同一套界面，可以管理订阅、选择代理节点、查看连接与日志、统计实时流量，并支持系统代理和虚拟网卡（TUN）模式。
+[![Windows x64](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-windows.yml/badge.svg)](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-windows.yml)
+[![Linux x64](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-linux.yml/badge.svg)](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-linux.yml)
+![版本](https://img.shields.io/badge/version-1.0.0-1688f0)
+![Flutter](https://img.shields.io/badge/Flutter-cross--platform-02569B?logo=flutter&logoColor=white)
+![支持平台](https://img.shields.io/badge/platforms-Android%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux-2d3345)
+
+**Clash RS 是一个使用 Flutter 开发的跨平台代理客户端、VPN 客户端和 Mihomo GUI，支持 Android、macOS、Windows 和 Linux。** 它在一套界面中提供订阅管理、代理节点选择、网络延迟检测、规则/全局/直连路由、系统代理、虚拟网卡（TUN）模式、活动连接、日志、IP 信息和实时流量监控。
 
 桌面端使用固定版本的 [mihomo](https://github.com/MetaCubeX/mihomo) 作为代理核心；Android 使用系统 `VpnService` 和 Rust `core-bridge`。
 
 > 当前应用版本：**1.0.0**。桌面窗口固定为 **960 × 720**。
+
+**[下载安装](#下载安装)** · **[新手使用](#新手快速使用)** · **[打包说明](#分平台打包)** · **[English](README.md)**
+
+## 下载安装
+
+普通用户请前往 [GitHub Releases 下载页](https://github.com/goodlovesky/monorepo/releases/latest)，下载 Clash RS 安装包及其校验文件。
+
+| 下载内容 | 下载位置 | 说明 |
+| --- | --- | --- |
+| 稳定安装包 | [下载最新版](https://github.com/goodlovesky/monorepo/releases/latest) | 带版本号的安装包、便携包、构建清单和 SHA-256 校验文件 |
+| 历史版本 | [全部 Releases](https://github.com/goodlovesky/monorepo/releases) | 查看旧版本和版本说明 |
+| Windows x64 测试构建 | [Windows Actions](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-windows.yml) | 打开成功任务并下载 `Clash-RS-Windows-x64` |
+| Linux x64 测试构建 | [Linux Actions](https://github.com/goodlovesky/monorepo/actions/workflows/desktop-linux.yml) | 打开成功任务并下载 `Clash-RS-Linux-x64` |
+| 源码 | [ZIP](https://github.com/goodlovesky/monorepo/archive/refs/heads/main.zip) · [tar.gz](https://github.com/goodlovesky/monorepo/archive/refs/heads/main.tar.gz) | 当前 `main` 分支源码快照 |
+
+GitHub Actions 产物主要用于测试，并且只保留有限时间。普通安装优先使用 Releases 下载页。
 
 ## 项目能做什么
 
