@@ -106,12 +106,14 @@ EOF
   dpkg-deb --root-owner-group --build "$stage" "$DIST/clash-rs_${version}_amd64.deb"
 fi
 
+flutter_output="$(flutter --version 2>&1)"
+flutter_version="${flutter_output%%$'\n'*}"
 cat > "$DIST/BUILD-ENVIRONMENT.txt" <<EOF
 built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 app_version=$version
 build_number=$build_number
 architecture=amd64
-flutter=$(flutter --version | head -1)
+flutter=$flutter_version
 linux=$(uname -srmo)
 EOF
 

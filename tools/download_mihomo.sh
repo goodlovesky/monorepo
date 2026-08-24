@@ -8,9 +8,11 @@ VERSION="v1.19.30"
 FORCE=false
 [[ "${1:-}" == "--force" ]] && FORCE=true
 
+existing_version=""
+[[ -x "$DEST" ]] && existing_version="$("$DEST" -v 2>&1 || true)"
 if [[ -x "$DEST" && "$FORCE" == false ]] && \
    file "$DEST" | grep -q 'universal binary' && \
-   "$DEST" -v 2>&1 | grep -q "$VERSION"; then
+   [[ "$existing_version" == *"$VERSION"* ]]; then
   echo "已存在通用版 $VERSION: $DEST"
   exit 0
 fi
@@ -40,4 +42,5 @@ done
 lipo -create "$tmp/arm64" "$tmp/amd64" -output "$DEST"
 chmod 755 "$DEST"
 file "$DEST"
-"$DEST" -v 2>&1 | head -1
+version_output="$("$DEST" -v 2>&1)"
+echo "${version_output%%$'\n'*}"

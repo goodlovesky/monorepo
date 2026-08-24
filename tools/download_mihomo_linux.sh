@@ -21,7 +21,8 @@ actual="$(sha256sum "$archive" | awk '{print $1}')"
 }
 gzip -dc "$archive" > "$DEST"
 chmod 755 "$DEST"
-"$DEST" -v | head -1
+version_output="$("$DEST" -v 2>&1)"
+echo "${version_output%%$'\n'*}"
 cat > "$DEST_DIR/LINUX-RUNTIME.txt" <<EOF
 mihomo_version=$VERSION
 mihomo_asset=$ASSET

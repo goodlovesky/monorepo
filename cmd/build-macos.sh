@@ -25,10 +25,11 @@ else
   "$ROOT/tools/build_macos.sh"
 fi
 version="$(awk '/^version:/{split($2,v,"+"); print v[1]; exit}' "$ROOT/app/pubspec.yaml")"
+flutter_output="$(flutter --version 2>&1)"; flutter_version="${flutter_output%%$'\n'*}"
 cat > "$ROOT/dist/macos/BUILD-ENVIRONMENT.txt" <<EOF
 built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 app_version=$version
-flutter=$(flutter --version | head -1)
+flutter=$flutter_version
 macos=$(sw_vers -productVersion)
 EOF
 python3 - "$ROOT/dist/macos" "$version" <<'PY'

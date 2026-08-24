@@ -29,11 +29,13 @@ if $AAB; then
   (cd "$APP" && flutter build appbundle --release)
   cp "$APP/build/app/outputs/bundle/release/app-release.aab" "$DIST/ClashRS-$version-android.aab"
 fi
+flutter_output="$(flutter --version 2>&1)"; flutter_version="${flutter_output%%$'\n'*}"
+java_output="$(java -version 2>&1)"; java_version="${java_output%%$'\n'*}"
 cat > "$DIST/BUILD-ENVIRONMENT.txt" <<EOF
 built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 app_version=$version
-flutter=$(flutter --version | head -1)
-java=$(java -version 2>&1 | head -1)
+flutter=$flutter_version
+java=$java_version
 EOF
 python3 - "$DIST" "$version" <<'PY'
 import hashlib, json, pathlib, sys
