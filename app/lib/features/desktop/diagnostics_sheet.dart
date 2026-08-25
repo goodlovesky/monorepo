@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../services/proxy_app_controller.dart';
 import 'desktop_app.dart' show DesktopColors;
+import '../../l10n/rs_text.dart';
 
 /// 诊断面板：错误详情 + 性能 + 一键复制/导出。
 class DiagnosticsSheet extends StatefulWidget {
@@ -60,7 +61,7 @@ class _DiagnosticsSheetState extends State<DiagnosticsSheet> {
                   color: Color(0xFF168BFA),
                 ),
                 SizedBox(width: 10),
-                Text(
+                RsText(
                   '诊断信息',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                 ),
@@ -71,13 +72,13 @@ class _DiagnosticsSheetState extends State<DiagnosticsSheet> {
             _Section(
               title: '最近错误',
               trailing: c.error == null
-                  ? const Text(
+                  ? const RsText(
                       '（无）',
                       style: TextStyle(color: DesktopColors.muted),
                     )
                   : null,
               child: SelectableText(
-                c.error ?? '运行正常',
+                context.rsText(c.error ?? '运行正常'),
                 style: TextStyle(
                   color: c.error == null
                       ? DesktopColors.muted
@@ -94,14 +95,14 @@ class _DiagnosticsSheetState extends State<DiagnosticsSheet> {
               trailing: TextButton.icon(
                 onPressed: _refreshStats,
                 icon: const Icon(Icons.refresh, size: 14),
-                label: const Text('刷新'),
+                label: const RsText('刷新'),
               ),
               child: _stats == null
-                  ? const Text(
+                  ? const RsText(
                       '正在读取…',
                       style: TextStyle(color: DesktopColors.muted),
                     )
-                  : _stats!.render(),
+                  : _stats!.render(context),
             ),
             const SizedBox(height: 12),
             // 日志摘要
@@ -113,7 +114,7 @@ class _DiagnosticsSheetState extends State<DiagnosticsSheet> {
                   reverse: true,
                   child: SelectableText(
                     c.logs.take(50).join('\n').isEmpty
-                        ? '（暂无日志）'
+                        ? context.rsText('（暂无日志）')
                         : c.logs.take(50).join('\n'),
                     style: const TextStyle(
                       color: Color(0xFFCDCED4),
@@ -133,18 +134,18 @@ class _DiagnosticsSheetState extends State<DiagnosticsSheet> {
                 OutlinedButton.icon(
                   onPressed: () => _copy(c),
                   icon: const Icon(Icons.copy, size: 16),
-                  label: const Text('复制到剪贴板'),
+                  label: const RsText('复制到剪贴板'),
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: () => _export(c),
                   icon: const Icon(Icons.download, size: 16),
-                  label: const Text('导出为文件'),
+                  label: const RsText('导出为文件'),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('关闭'),
+                  child: const RsText('关闭'),
                 ),
               ],
             ),
@@ -159,7 +160,7 @@ class _DiagnosticsSheetState extends State<DiagnosticsSheet> {
     await Clipboard.setData(ClipboardData(text: report));
     if (!mounted) return;
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('诊断信息已复制到剪贴板')));
+        .showSnackBar(const SnackBar(content: RsText('诊断信息已复制到剪贴板')));
   }
 
   Future<void> _export(ProxyAppController c) async {
@@ -171,7 +172,7 @@ class _DiagnosticsSheetState extends State<DiagnosticsSheet> {
     await file.writeAsString(report, flush: true);
     if (!mounted) return;
     ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('已导出：${file.path}')));
+        .showSnackBar(SnackBar(content: RsText('已导出：${file.path}')));
   }
 
   String _buildReport(ProxyAppController c) {
@@ -229,7 +230,7 @@ class _Section extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text(
+              child: RsText(
                 title,
                 style: const TextStyle(
                   fontSize: 13,
@@ -272,7 +273,7 @@ class _ProcessStats {
     'activeHandles': activeHandles,
   };
 
-  Widget render() => Column(
+  Widget render(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _kv('PID', '$pid'),
@@ -289,7 +290,7 @@ class _ProcessStats {
       children: [
         SizedBox(
           width: 110,
-          child: Text(
+          child: RsText(
             k,
             style: const TextStyle(color: DesktopColors.muted, fontSize: 12),
           ),
@@ -341,7 +342,8 @@ class _ProcessStats {
         host: hostname,
         activeHandles: _approxHandleCount(),
       );
-    } catch (_) {
+    } catch (e, s) {
+      debugPrint('diagnostics_sheet._processInfo: $e\n$s');
       return null;
     }
   }
@@ -350,7 +352,9 @@ class _ProcessStats {
     try {
       final r = await Process.run('hostname', []);
       if (r.exitCode == 0) return r.stdout.toString().trim();
-    } catch (_) {}
+    } catch (e, s) {
+      debugPrint('diagnostics_sheet._hostname: $e\n$s');
+    }
     return Platform.localHostname;
   }
 

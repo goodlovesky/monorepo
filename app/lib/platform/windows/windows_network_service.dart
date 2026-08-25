@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import '../../core/log/app_log.dart';
 import '../../core/vpn/vpn_controller.dart';
 import '../desktop/desktop_network_service.dart';
 
@@ -71,7 +72,10 @@ class WindowsNetworkService extends ChangeNotifier
       }
       await restore();
     } catch (error) {
-      lastError = '恢复 Windows 网络状态失败：$error';
+      lastError = AppLog.pick(
+        '恢复 Windows 网络状态失败：$error',
+        'Failed to restore Windows network state: $error',
+      );
       rethrow;
     }
   }
@@ -203,7 +207,8 @@ class WindowsNetworkService extends ChangeNotifier
       );
       socket.destroy();
       return true;
-    } catch (_) {
+    } catch (e, s) {
+      debugPrint('windows_network_service.controllerPortOpen: $e\n$s');
       return false;
     }
   }
@@ -307,7 +312,8 @@ public class WinInetNotify {
         );
         socket.destroy();
         return;
-      } catch (_) {
+      } catch (e, s) {
+        debugPrint('windows_network_service.waitForPortClose: $e\n$s');
         await Future<void>.delayed(const Duration(milliseconds: 200));
       }
     }

@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../core/ffi/clash_bridge.dart';
 import '../core/ffi/clash_controller.dart';
+import '../core/log/app_log.dart';
 import '../core/vpn/vpn_controller.dart';
 import '../models/app_settings.dart';
 import '../models/ip_info.dart';
@@ -551,7 +552,7 @@ class ProxyAppController extends ChangeNotifier {
             if (engineRunning) {
               engineRunning = false;
               vpnRunning = false;
-              error = 'mihomo 意外退出（exit=$code）';
+              error = AppLog.pick('mihomo 意外退出（exit=$code）', 'mihomo exited unexpectedly (exit=$code)');
               _log(error!);
               notifyListeners();
               _scheduleDesktopRestart();
@@ -707,7 +708,7 @@ class ProxyAppController extends ChangeNotifier {
       }
       notifyListeners();
     } catch (exception) {
-      error = '读取代理组失败：$exception';
+      error = AppLog.pick('读取代理组失败：$exception', 'Failed to read proxy groups: $exception');
       notifyListeners();
     }
   }
@@ -739,7 +740,7 @@ class ProxyAppController extends ChangeNotifier {
     } catch (exception) {
       groups = const {};
       selectedGroup = null;
-      error = '读取订阅节点失败：$exception';
+      error = AppLog.pick('读取订阅节点失败：$exception', 'Failed to read subscription nodes: $exception');
     }
   }
 
@@ -770,7 +771,7 @@ class ProxyAppController extends ChangeNotifier {
       _log('节点切换：$group → $name');
       await checkNodeDelay(name);
     } catch (exception) {
-      error = '节点切换失败：$exception';
+      error = AppLog.pick('节点切换失败：$exception', 'Failed to switch node: $exception');
       notifyListeners();
     }
   }
@@ -839,7 +840,7 @@ class ProxyAppController extends ChangeNotifier {
     if (_controller == null || group == null || checkingDelays) return;
     final groupMeta = groups[group];
     if (groupMeta == null || groupMeta.all.isEmpty) {
-      error = '分组 $group 不存在或没有节点';
+      error = AppLog.pick('分组 $group 不存在或没有节点', 'Group "$group" does not exist or has no nodes');
       notifyListeners();
       return;
     }
@@ -861,7 +862,7 @@ class ProxyAppController extends ChangeNotifier {
       delays = {...delays, ...result};
       _log('延迟测试完成：$group（${result.length} 个节点）');
     } catch (exception) {
-      error = '延迟测试失败：$exception';
+      error = AppLog.pick('延迟测试失败：$exception', 'Latency test failed: $exception');
     } finally {
       if (generation == _delayGeneration) checkingDelays = false;
       notifyListeners();
@@ -928,7 +929,7 @@ class ProxyAppController extends ChangeNotifier {
       delays = {...delays, node: delay};
     } catch (exception) {
       delays = {...delays, node: -1};
-      error = '节点测速失败：$node，$exception';
+      error = AppLog.pick('节点测速失败：$node，$exception', 'Node speed test failed: $node, $exception');
     } finally {
       _checkingNodeDelays.remove(node);
       notifyListeners();
@@ -952,7 +953,7 @@ class ProxyAppController extends ChangeNotifier {
       connectionDownloadTotal = snapshot.downloadTotal;
       notifyListeners();
     } catch (exception) {
-      error = '读取活动连接失败：$exception';
+      error = AppLog.pick('读取活动连接失败：$exception', 'Failed to read active connections: $exception');
       notifyListeners();
     } finally {
       _connectionsPolling = false;
@@ -966,7 +967,7 @@ class ProxyAppController extends ChangeNotifier {
       rules = await controller.getRules();
       notifyListeners();
     } catch (exception) {
-      error = '读取规则失败：$exception';
+      error = AppLog.pick('读取规则失败：$exception', 'Failed to read rules: $exception');
       notifyListeners();
     }
   }
@@ -990,7 +991,7 @@ class ProxyAppController extends ChangeNotifier {
       _log('代理模式切换为：$mode');
       notifyListeners();
     } catch (exception) {
-      error = '切换代理模式失败：$exception';
+      error = AppLog.pick('切换代理模式失败：$exception', 'Failed to switch proxy mode: $exception');
       notifyListeners();
     }
   }
@@ -1044,7 +1045,7 @@ class ProxyAppController extends ChangeNotifier {
       notifyListeners();
       if (wasRunning) await start();
     } catch (exception) {
-      error = '启用配置失败：$exception';
+      error = AppLog.pick('启用配置失败：$exception', 'Failed to enable profile: $exception');
       notifyListeners();
     }
   }
@@ -1060,7 +1061,7 @@ class ProxyAppController extends ChangeNotifier {
     } catch (exception) {
       // 刷新失败：保留旧配置 + 记录原因 + UI 友好提示
       final reason = exception.toString();
-      error = '订阅刷新失败（已保留旧配置）：$reason';
+      error = AppLog.pick('订阅刷新失败（已保留旧配置）：$reason', 'Subscription refresh failed (kept old profile): $reason');
       _log('订阅刷新失败：${profile.name}，$reason');
       _refreshErrors[profile.id] = DateTime.now();
       notifyListeners();
@@ -1090,7 +1091,7 @@ class ProxyAppController extends ChangeNotifier {
       }
     } catch (exception) {
       // 保存失败也回滚不到（新数据已经准备但写盘失败），保留旧文件
-      error = '保存新配置失败（已保留旧配置）：$exception';
+      error = AppLog.pick('保存新配置失败（已保留旧配置）：$exception', 'Failed to save new profile (kept old): $exception');
       _log('保存新配置失败：${profile.name}，$exception');
       notifyListeners();
     }
@@ -1164,7 +1165,7 @@ class ProxyAppController extends ChangeNotifier {
     } catch (exception) {
       settings = previous;
       await _settingsRepository!.save(previous).catchError((_) {});
-      error = '保存设置失败：$exception';
+      error = AppLog.pick('保存设置失败：$exception', 'Failed to save settings: $exception');
       _log(error!);
       notifyListeners();
     }
@@ -1402,7 +1403,7 @@ class ProxyAppController extends ChangeNotifier {
     externalEngineRunning = false;
     engineRunning = false;
     vpnRunning = false;
-    error = 'TUN 自动恢复失败：$exception';
+    error = AppLog.pick('TUN 自动恢复失败：$exception', 'TUN auto-recovery failed: $exception');
     _log(error!);
     notifyListeners();
   }
@@ -1555,7 +1556,7 @@ class ProxyAppController extends ChangeNotifier {
         vpnRunning = false;
         _trafficTimer?.cancel();
         if (Platform.isAndroid) await _vpn.stop().catchError((_) {});
-        error = '代理核心已退出，系统 VPN 已停止';
+        error = AppLog.pick('代理核心已退出，系统 VPN 已停止', 'Proxy core exited, system VPN has been stopped');
         _trafficPolling = false;
         notifyListeners();
         if (shouldRestart) {
@@ -1649,7 +1650,10 @@ class ProxyAppController extends ChangeNotifier {
   void _scheduleDesktopRestart() {
     if (Platform.isAndroid || !settings.autoRestart || busy) return;
     if (_desktopRestartAttempts >= 3) {
-      error = 'mihomo 连续重启 3 次仍失败，已停止自动重启';
+      error = AppLog.pick(
+        'mihomo 连续重启 3 次仍失败，已停止自动重启',
+        'mihomo failed to restart after 3 attempts, auto-restart has been stopped',
+      );
       _log(error!);
       notifyListeners();
       return;

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../../services/proxy_app_controller.dart';
 import '../desktop_app.dart' show DesktopColors;
+import '../../../l10n/rs_text.dart';
 
 /// 面向用户统一隐藏底层 Socket/Timeout/HTTP 异常细节。
 String proxyProbeFailureLabel(Object? _) => '代理异常';
@@ -102,29 +103,29 @@ class _TestPageState extends State<TestPage> {
     final accepted = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('添加测试项'),
+        title: const RsText('添加测试项'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: name,
-              decoration: const InputDecoration(labelText: '名称'),
+              decoration: InputDecoration(labelText: context.rsText('名称')),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: url,
-              decoration: const InputDecoration(labelText: 'URL'),
+              decoration: InputDecoration(labelText: 'URL'),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: const RsText('取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('添加'),
+            child: const RsText('添加'),
           ),
         ],
       ),
@@ -149,29 +150,29 @@ class _TestPageState extends State<TestPage> {
     final accepted = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('编辑测试项'),
+        title: const RsText('编辑测试项'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: name,
-              decoration: const InputDecoration(labelText: '名称'),
+              decoration: InputDecoration(labelText: context.rsText('名称')),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: url,
-              decoration: const InputDecoration(labelText: 'URL'),
+              decoration: InputDecoration(labelText: 'URL'),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: const RsText('取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('保存'),
+            child: const RsText('保存'),
           ),
         ],
       ),
@@ -274,33 +275,33 @@ class _TestPageState extends State<TestPage> {
         children: [
           Row(
             children: [
-              const Text(
+              const RsText(
                 '解锁测试',
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
               const Spacer(),
               IconButton(
-                tooltip: '从剪贴板导入',
+                tooltip: context.rsText('从剪贴板导入'),
                 onPressed: _pasteTargets,
                 icon: const Icon(Icons.content_paste),
               ),
               IconButton(
-                tooltip: '导出到剪贴板',
+                tooltip: context.rsText('导出到剪贴板'),
                 onPressed: _copyTargets,
                 icon: const Icon(Icons.copy_all_outlined),
               ),
               IconButton(
-                tooltip: '恢复默认',
+                tooltip: context.rsText('恢复默认'),
                 onPressed: _resetTargets,
                 icon: const Icon(Icons.restore),
               ),
               IconButton(
-                tooltip: '添加',
+                tooltip: context.rsText('添加'),
                 onPressed: _add,
                 icon: const Icon(Icons.add),
               ),
               IconButton(
-                tooltip: '取消',
+                tooltip: context.rsText('取消'),
                 onPressed: _cancel,
                 icon: const Icon(Icons.stop),
               ),
@@ -310,7 +311,7 @@ class _TestPageState extends State<TestPage> {
                   backgroundColor: const Color(0xFF168BFA),
                 ),
                 icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('测试全部'),
+                label: const RsText('测试全部'),
               ),
             ],
           ),
@@ -423,11 +424,11 @@ class _TargetCard extends StatelessWidget {
                 ),
               ),
               PopupMenuButton<String>(
-                tooltip: '编辑测试项',
+                tooltip: context.rsText('编辑测试项'),
                 onSelected: (value) => value == 'edit' ? onEdit() : onDelete(),
                 itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'edit', child: Text('编辑')),
-                  PopupMenuItem(value: 'delete', child: Text('删除')),
+                  PopupMenuItem(value: 'edit', child: RsText('编辑')),
+                  PopupMenuItem(value: 'delete', child: RsText('删除')),
                 ],
                 icon: const Icon(Icons.more_horiz, size: 20),
               ),
@@ -450,7 +451,7 @@ class _TargetCard extends StatelessWidget {
               children: [
                 Icon(Icons.face_retouching_natural, size: 12, color: color),
                 const SizedBox(width: 4),
-                Text(stateText, style: TextStyle(color: color, fontSize: 11)),
+                RsText(stateText, style: TextStyle(color: color, fontSize: 11)),
               ],
             ),
           ),

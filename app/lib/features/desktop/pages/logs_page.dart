@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../services/proxy_app_controller.dart';
 import '../desktop_app.dart' show DesktopColors;
 import 'widgets.dart';
+import '../../../l10n/rs_text.dart';
 
 /// mac-1008 日志页面。
 class LogsPage extends StatefulWidget {
@@ -85,7 +86,7 @@ class _LogsPageState extends State<LogsPage> {
                       controller: filter,
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
-                        hintText: '过滤条件',
+                        hintText: context.rsText('过滤条件'),
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
                         fillColor: const Color(0xFF252936),
@@ -107,7 +108,7 @@ class _LogsPageState extends State<LogsPage> {
                   const SizedBox(width: 8),
                   _SyntaxBtn(
                     label: 'Aa',
-                    tooltip: '区分大小写',
+                    tooltip: context.rsText('区分大小写'),
                     selected: _caseSensitive,
                     onTap: () =>
                         setState(() => _caseSensitive = !_caseSensitive),
@@ -115,14 +116,14 @@ class _LogsPageState extends State<LogsPage> {
                   const SizedBox(width: 4),
                   _SyntaxBtn(
                     label: 'ab',
-                    tooltip: '正则表达式',
+                    tooltip: context.rsText('正则表达式'),
                     selected: _regex,
                     onTap: () => setState(() => _regex = !_regex),
                   ),
                   const SizedBox(width: 4),
                   _SyntaxBtn(
                     label: '*',
-                    tooltip: '通配符',
+                    tooltip: context.rsText('通配符'),
                     selected: _wildcard,
                     onTap: () => setState(() {
                       _wildcard = !_wildcard;
@@ -132,7 +133,7 @@ class _LogsPageState extends State<LogsPage> {
                   const SizedBox(width: 8),
                   _ToggleBtn(
                     icon: Icons.pause_circle_outline,
-                    tooltip: '暂停',
+                    tooltip: context.rsText('暂停'),
                     selected: paused,
                     onTap: () => setState(() {
                       paused = !paused;
@@ -142,13 +143,13 @@ class _LogsPageState extends State<LogsPage> {
                   const SizedBox(width: 4),
                   _ToggleBtn(
                     icon: Icons.vertical_align_bottom,
-                    tooltip: '自动滚动',
+                    tooltip: context.rsText('自动滚动'),
                     selected: autoScroll,
                     onTap: () => setState(() => autoScroll = !autoScroll),
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    tooltip: '复制筛选结果',
+                    tooltip: context.rsText('复制筛选结果'),
                     onPressed: logs.isEmpty
                         ? null
                         : () async {
@@ -158,7 +159,7 @@ class _LogsPageState extends State<LogsPage> {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('已复制 ${logs.length} 条日志'),
+                                  content: RsText('已复制 ${logs.length} 条日志'),
                                 ),
                               );
                             }
@@ -166,17 +167,17 @@ class _LogsPageState extends State<LogsPage> {
                     icon: const Icon(Icons.copy_all_outlined),
                   ),
                   IconButton(
-                    tooltip: '清空',
+                    tooltip: context.rsText('清空'),
                     onPressed: widget.controller.clearLogs,
                     icon: const Icon(Icons.delete_sweep),
                   ),
                   IconButton(
-                    tooltip: '导出',
+                    tooltip: context.rsText('导出'),
                     onPressed: () async {
                       final file = await widget.controller.exportLogs();
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('已导出：${file.path}')),
+                        SnackBar(content: RsText('已导出：${file.path}')),
                       );
                     },
                     icon: const Icon(Icons.download),

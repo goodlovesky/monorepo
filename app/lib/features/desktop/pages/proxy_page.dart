@@ -4,6 +4,7 @@ import '../../../core/ffi/clash_controller.dart' show ProxyGroup;
 import '../../../services/proxy_app_controller.dart';
 import '../desktop_app.dart' show DesktopColors, DesktopSection;
 import 'widgets.dart';
+import '../../../l10n/rs_text.dart';
 
 /// mac-1004 / mac-1012 代理组页面。
 class ProxyPage extends StatelessWidget {
@@ -67,9 +68,9 @@ class _EmptyProxyView extends StatelessWidget {
             color: Color(0xFF168BFA),
           ),
           const SizedBox(height: 14),
-          const Text('当前没有可用的代理节点', style: TextStyle(fontSize: 16)),
+          const RsText('当前没有可用的代理节点', style: TextStyle(fontSize: 16)),
           const SizedBox(height: 6),
-          Text(
+          RsText(
             subtitle,
             style: const TextStyle(color: DesktopColors.muted, fontSize: 13),
             textAlign: TextAlign.center,
@@ -79,7 +80,7 @@ class _EmptyProxyView extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => onNavigate!(DesktopSection.subscription),
               icon: const Icon(Icons.cloud_download_outlined, size: 16),
-              label: const Text('前往订阅页'),
+              label: const RsText('前往订阅页'),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF168BFA),
               ),
@@ -146,16 +147,16 @@ class _ProxyToolbar extends StatelessWidget {
           onPressed: () => showDialog<void>(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('链式代理'),
+              title: const RsText('链式代理'),
               content: SizedBox(
                 width: 440,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('当前代理链由配置文件中的 relay 分组管理。'),
+                    const RsText('当前代理链由配置文件中的 relay 分组管理。'),
                     const SizedBox(height: 12),
-                    Text(
+                    RsText(
                       controller.groups.values
                               .where((group) => group.type == 'relay')
                               .map(
@@ -180,13 +181,13 @@ class _ProxyToolbar extends StatelessWidget {
               actions: [
                 FilledButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('完成'),
+                  child: const RsText('完成'),
                 ),
               ],
             ),
           ),
           icon: const Icon(Icons.account_tree_outlined, size: 16),
-          label: const Text('链式代理'),
+          label: const RsText('链式代理'),
           style: OutlinedButton.styleFrom(
             foregroundColor: const Color(0xFF168BFA),
             side: const BorderSide(color: Color(0xFF168BFA)),
@@ -204,7 +205,7 @@ class _ProxyToolbar extends StatelessWidget {
             controller.checkingDelays ? Icons.stop : Icons.bolt,
             size: 16,
           ),
-          label: Text(controller.checkingDelays ? '取消测速' : '全部测速'),
+          label: RsText(controller.checkingDelays ? '取消测速' : '全部测速'),
           style: OutlinedButton.styleFrom(
             foregroundColor: const Color(0xFF168BFA),
             side: const BorderSide(color: Color(0xFF168BFA)),
@@ -243,7 +244,7 @@ class _ModeChip extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        child: Text(
+        child: RsText(
           label,
           style: TextStyle(
             color: selected ? Colors.white : DesktopColors.muted,
@@ -312,7 +313,7 @@ class _NodeGrid extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 480,
-        mainAxisExtent: 60,
+        mainAxisExtent: 62,
         crossAxisSpacing: 12,
         mainAxisSpacing: 8,
       ),
@@ -480,7 +481,7 @@ class _DelayTag extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 52, minHeight: 34),
       child: Align(
         alignment: Alignment.centerRight,
-        child: Text(
+        child: RsText(
           text,
           style: TextStyle(
             color: color,

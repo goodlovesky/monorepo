@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../services/proxy_app_controller.dart';
 import '../desktop_app.dart' show DesktopColors;
 import 'widgets.dart';
+import '../../../l10n/rs_text.dart';
 
 /// mac-1007 规则页面：序号 + payload + 类型 + 策略。
 class RulesPage extends StatefulWidget {
@@ -79,7 +80,7 @@ class _RulesPageState extends State<RulesPage> {
                       controller: filter,
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
-                        hintText: '过滤条件',
+                        hintText: context.rsText('过滤条件'),
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
                         fillColor: const Color(0xFF252936),
@@ -101,7 +102,7 @@ class _RulesPageState extends State<RulesPage> {
                   const SizedBox(width: 8),
                   _SyntaxBtn(
                     label: 'Aa',
-                    tooltip: '区分大小写',
+                    tooltip: context.rsText('区分大小写'),
                     selected: _caseSensitive,
                     onTap: () =>
                         setState(() => _caseSensitive = !_caseSensitive),
@@ -109,14 +110,14 @@ class _RulesPageState extends State<RulesPage> {
                   const SizedBox(width: 4),
                   _SyntaxBtn(
                     label: 'ab',
-                    tooltip: '正则表达式',
+                    tooltip: context.rsText('正则表达式'),
                     selected: _regex,
                     onTap: () => setState(() => _regex = !_regex),
                   ),
                   const SizedBox(width: 4),
                   _SyntaxBtn(
                     label: '*',
-                    tooltip: '通配符',
+                    tooltip: context.rsText('通配符'),
                     selected: _wildcard,
                     onTap: () => setState(() {
                       _wildcard = !_wildcard;
@@ -125,7 +126,7 @@ class _RulesPageState extends State<RulesPage> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    tooltip: '刷新',
+                    tooltip: context.rsText('刷新'),
                     onPressed: widget.controller.refreshRuntimeDetails,
                     icon: const Icon(Icons.refresh),
                   ),
@@ -159,7 +160,7 @@ class _RulesPageState extends State<RulesPage> {
                             children: [
                               SizedBox(
                                 width: 38,
-                                child: Text(
+                                child: RsText(
                                   '${entry.key + 1}',
                                   textAlign: TextAlign.right,
                                   style: const TextStyle(
@@ -173,13 +174,21 @@ class _RulesPageState extends State<RulesPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      payload.isEmpty ? '（无载荷）' : payload,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
+                                    payload.isEmpty
+                                        ? const RsText(
+                                            '（无载荷）',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          )
+                                        : Text(
+                                            payload,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
                                     const SizedBox(height: 4),
                                     Text(
                                       type,

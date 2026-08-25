@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import '../../core/log/app_log.dart';
+
 import '../../core/vpn/vpn_controller.dart';
 import '../desktop/desktop_network_service.dart';
 
@@ -109,7 +111,9 @@ class LinuxNetworkService extends ChangeNotifier
       await restore();
       _update(clearError: true);
     } catch (error) {
-      _update(error: '恢复 Linux 网络状态失败：$error');
+      _update(
+        error: AppLog.pick('恢复 Linux 网络状态失败：$error', 'Failed to restore Linux network state: $error'),
+      );
       rethrow;
     }
   }
@@ -139,10 +143,12 @@ class LinuxNetworkService extends ChangeNotifier
     } catch (error) {
       try {
         await _restoreProxy();
-      } catch (_) {}
+      } catch (e, s) {
+        debugPrint('linux_network_service.best-effort restoreProxy: $e\n$s');
+      }
       _update(
         nextMode: DesktopNetworkMode.off,
-        error: '启用 Linux 系统代理失败：$error',
+        error: AppLog.pick('启用 Linux 系统代理失败：$error', 'Failed to enable Linux system proxy: $error'),
       );
       rethrow;
     }
@@ -246,7 +252,8 @@ class LinuxNetworkService extends ChangeNotifier
       );
       socket.destroy();
       return true;
-    } catch (_) {
+    } catch (e, s) {
+      debugPrint('linux_network_service.controllerPortOpen: $e\n$s');
       return false;
     }
   }

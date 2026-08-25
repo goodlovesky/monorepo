@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../services/proxy_app_controller.dart';
 import '../desktop_app.dart' show DesktopColors;
 import 'widgets.dart';
+import '../../../l10n/rs_text.dart';
 
 /// mac-1006 连接页面：实时连接表 + 上下行汇总 + 过滤语法。
 class ConnectionsPage extends StatefulWidget {
@@ -113,7 +114,8 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                     q,
                     caseSensitive: _caseSensitive,
                   ).hasMatch(value);
-                } catch (_) {
+                } catch (e, s) {
+                  debugPrint('connections_page.search predicate: $e\n$s');
                   return false;
                 }
               }
@@ -153,12 +155,12 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 5),
               child: Row(
                 children: [
-                  Text(
+                  RsText(
                     '下载量：${_bytes(totalDown)}',
                     style: const TextStyle(color: DesktopColors.muted),
                   ),
                   const SizedBox(width: 18),
-                  Text(
+                  RsText(
                     '上传量：${_bytes(totalUp)}',
                     style: const TextStyle(color: DesktopColors.muted),
                   ),
@@ -171,7 +173,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                       backgroundColor: const Color(0xFF168BFA),
                     ),
                     icon: const Icon(Icons.close, size: 16),
-                    label: const Text('关闭全部'),
+                    label: const RsText('关闭全部'),
                   ),
                 ],
               ),
@@ -198,7 +200,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                       controller: filter,
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
-                        hintText: '过滤条件',
+                        hintText: context.rsText('过滤条件'),
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
                         fillColor: const Color(0xFF252936),
@@ -220,7 +222,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                   const SizedBox(width: 8),
                   _SyntaxBtn(
                     label: 'Aa',
-                    tooltip: '区分大小写',
+                    tooltip: context.rsText('区分大小写'),
                     selected: _caseSensitive,
                     onTap: () =>
                         setState(() => _caseSensitive = !_caseSensitive),
@@ -228,14 +230,14 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                   const SizedBox(width: 4),
                   _SyntaxBtn(
                     label: 'ab',
-                    tooltip: '正则表达式',
+                    tooltip: context.rsText('正则表达式'),
                     selected: _regex,
                     onTap: () => setState(() => _regex = !_regex),
                   ),
                   const SizedBox(width: 4),
                   _SyntaxBtn(
                     label: '*',
-                    tooltip: '通配符',
+                    tooltip: context.rsText('通配符'),
                     selected: _wildcard,
                     onTap: () => setState(() {
                       _wildcard = !_wildcard;
@@ -244,14 +246,14 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    tooltip: '按流量排序',
+                    tooltip: context.rsText('按流量排序'),
                     onPressed: () => setState(() => descending = !descending),
                     icon: Icon(
                       descending ? Icons.arrow_downward : Icons.arrow_upward,
                     ),
                   ),
                   IconButton(
-                    tooltip: '刷新',
+                    tooltip: context.rsText('刷新'),
                     onPressed: _poll,
                     icon: const Icon(Icons.refresh),
                   ),
@@ -318,7 +320,7 @@ class _ToggleChip extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Text(
+        child: RsText(
           label,
           style: TextStyle(
             color: selected ? Colors.white : const Color(0xFFCDCED4),
@@ -380,7 +382,7 @@ class _TableHeader extends StatelessWidget {
       children: [
         const Expanded(
           flex: 4,
-          child: Text(
+          child: RsText(
             '主机',
             style: TextStyle(color: DesktopColors.muted, fontSize: 12),
           ),
@@ -388,35 +390,35 @@ class _TableHeader extends StatelessWidget {
         const SizedBox(width: 12),
         SizedBox(
           width: 90,
-          child: Text(
+          child: RsText(
             '下载量',
             style: TextStyle(color: DesktopColors.muted, fontSize: 12),
           ),
         ),
         SizedBox(
           width: 90,
-          child: Text(
+          child: RsText(
             '上传量',
             style: TextStyle(color: DesktopColors.muted, fontSize: 12),
           ),
         ),
         SizedBox(
           width: 80,
-          child: Text(
+          child: RsText(
             '下载速度',
             style: TextStyle(color: DesktopColors.muted, fontSize: 12),
           ),
         ),
         SizedBox(
           width: 80,
-          child: Text(
+          child: RsText(
             '上传速度',
             style: TextStyle(color: DesktopColors.muted, fontSize: 12),
           ),
         ),
         const Expanded(
           flex: 3,
-          child: Text(
+          child: RsText(
             '规则 / 链路',
             style: TextStyle(color: DesktopColors.muted, fontSize: 12),
           ),
@@ -424,7 +426,7 @@ class _TableHeader extends StatelessWidget {
         const SizedBox(width: 12),
         SizedBox(
           width: 32,
-          child: Text(
+          child: RsText(
             '',
             style: TextStyle(color: DesktopColors.muted, fontSize: 12),
           ),
@@ -451,7 +453,7 @@ class _ConnectionRow extends StatelessWidget {
     final metadata = item['metadata'] as Map? ?? const {};
     final hostName = (metadata['host']?.toString().isNotEmpty == true)
         ? metadata['host'].toString()
-        : (metadata['destinationIP']?.toString() ?? '未知目标');
+        : (metadata['destinationIP']?.toString() ?? context.rsText('未知目标'));
     final destinationPort = metadata['destinationPort']?.toString() ?? '';
     final host =
         destinationPort.isEmpty || hostName.endsWith(':$destinationPort')
@@ -492,7 +494,7 @@ class _ConnectionRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Text(
+                RsText(
                   '$source → $target',
                   style: const TextStyle(
                     color: DesktopColors.muted,

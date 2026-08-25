@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/proxy_app_controller.dart';
 import 'desktop_app.dart' show DesktopColors;
+import '../../l10n/rs_text.dart';
 
 /// 桌面端通知 banner。
 ///
@@ -36,7 +37,7 @@ class _NotificationBannerOverlayState extends State<NotificationBannerOverlay> {
       // 错误变化：弹红色 banner
       if (listenable.error != null && listenable.error != _lastError) {
         _lastError = listenable.error;
-        widget.onShow(context, '运行异常', listenable.error!);
+        widget.onShow(context, context.rsText('运行异常'), listenable.error!);
         return;
       }
       // 启动成功
@@ -44,7 +45,7 @@ class _NotificationBannerOverlayState extends State<NotificationBannerOverlay> {
       if (_lastStartedAt != null &&
           startedAt != null &&
           startedAt != _lastStartedAt) {
-        widget.onShow(context, '代理已启动', 'Tun 模式运行中');
+        widget.onShow(context, context.rsText('代理已启动'), context.rsText('Tun 模式运行中'));
       }
       _lastStartedAt = startedAt;
     }
@@ -172,7 +173,7 @@ class _BannerWidgetState extends State<_BannerWidget>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
+                        RsText(
                           widget.title,
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
@@ -180,7 +181,7 @@ class _BannerWidgetState extends State<_BannerWidget>
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
+                        RsText(
                           widget.body,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -193,7 +194,7 @@ class _BannerWidgetState extends State<_BannerWidget>
                     ),
                   ),
                   IconButton(
-                    tooltip: '关闭',
+                    tooltip: context.rsText('关闭'),
                     onPressed: _dismiss,
                     icon: const Icon(Icons.close, size: 16),
                   ),

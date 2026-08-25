@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/rs_text.dart';
 import '../desktop_app.dart' show DesktopColors;
 
 /// 通用卡片容器：左侧图标块 + 标题 + 右侧 trailing + 内容（无分隔线，紧凑布局）。
@@ -14,6 +15,7 @@ class RsCard extends StatelessWidget {
   final double iconSize;
   final int iconQuarterTurns;
   final TextStyle? titleStyle;
+  final bool translateTitle;
 
   const RsCard({
     super.key,
@@ -26,6 +28,7 @@ class RsCard extends StatelessWidget {
     this.iconSize = 22,
     this.iconQuarterTurns = 0,
     this.titleStyle,
+    this.translateTitle = true,
     this.contentPadding = const EdgeInsets.fromLTRB(16, 12, 16, 16),
   });
 
@@ -62,17 +65,29 @@ class RsCard extends StatelessWidget {
                   child: Row(
                     children: [
                       Flexible(
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style:
-                              titleStyle ??
-                              const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
+                        child: translateTitle
+                            ? RsText(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style:
+                                    titleStyle ??
+                                    const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              )
+                            : Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style:
+                                    titleStyle ??
+                                    const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                               ),
-                        ),
                       ),
                       if (titleSuffix != null) ...[
                         const SizedBox(width: 6),
@@ -114,10 +129,10 @@ class RsEmpty extends StatelessWidget {
       children: [
         Icon(icon, size: iconSize, color: const Color(0xFF168BFA)),
         const SizedBox(height: 8),
-        Text(title, style: const TextStyle(fontSize: 13)),
+        RsText(title, style: const TextStyle(fontSize: 13)),
         if (subtitle != null) ...[
           const SizedBox(height: 4),
-          Text(
+          RsText(
             subtitle!,
             style: const TextStyle(color: DesktopColors.muted, fontSize: 11),
           ),
@@ -247,7 +262,7 @@ class RsMetric extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
+          RsText(
             label,
             style: const TextStyle(color: DesktopColors.muted, fontSize: 10),
           ),

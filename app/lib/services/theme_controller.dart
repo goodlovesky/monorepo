@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../core/log/app_log.dart';
+
 /// 全局主题 + 语言控制器。
 ///
 /// 主题/语言偏好存到 application support 的 `preferences.json`，
@@ -16,11 +18,22 @@ class ThemeController extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   ThemeMode get themeMode => _themeMode;
 
-  /// 简单 i18n 字符串字典（key -> 中/英）。
-  /// 起步支持 zh-CN / en-US，新增语言只需扩展 _strings。
+  /// 当前界面语言，由 Flutter ARB/gen_l10n 资源解析。
   String _language = 'zh-CN';
   String get language => _language;
-  bool get isChinese => _language.startsWith('zh');
+  bool get isChinese => _language == 'zh-CN';
+
+  static const supportedLanguages = <String>{
+    'zh-CN',
+    'zh-TW',
+    'en-US',
+    'ja-JP',
+    'ko-KR',
+    'fr-FR',
+  };
+
+  static String normalizeLanguage(String? code) =>
+      supportedLanguages.contains(code) ? code! : 'zh-CN';
 
   File? _prefsFile;
 
@@ -38,7 +51,7 @@ class ThemeController extends ChangeNotifier {
         'dark' => ThemeMode.dark,
         _ => ThemeMode.system,
       };
-      _language = (root['language'] as String?) ?? 'zh-CN';
+      _language = normalizeLanguage(root['language'] as String?);
       notifyListeners();
     } catch (error) {
       debugPrint('ThemeController.load failed: $error');
@@ -66,14 +79,15 @@ class ThemeController extends ChangeNotifier {
 
   /// 修改语言（立即写盘 + 通知）。
   Future<void> setLanguage(String code) async {
-    if (code == _language) return;
-    _language = code;
+    final normalized = normalizeLanguage(code);
+    if (normalized == _language) return;
+    _language = normalized;
+    AppLog.setLocale(normalized);
     notifyListeners();
     await _persist();
   }
 
-  /// i18n 翻译：传入中文 key，返回当前语言下的字符串。
-  /// 找不到时回退到中文字面。
+  /// 旧调用兼容入口；新界面使用 AppLocalizations/RsText。
   String tr(String zh, [String? en]) {
     if (isChinese) return zh;
     return en ?? zh;

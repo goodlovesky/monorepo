@@ -6,8 +6,9 @@ import 'package:flutter/services.dart';
 
 import '../../platform/desktop/desktop_network_service.dart';
 import '../../platform/desktop/window_position_service.dart';
+import '../../core/log/app_log.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../services/proxy_app_controller.dart';
-import '../../services/theme_controller.dart';
 import 'pages/connections_page.dart';
 import 'pages/home_page.dart';
 import 'pages/logs_page.dart';
@@ -18,6 +19,7 @@ import 'pages/subscription_page.dart';
 import 'pages/test_page.dart';
 import 'diagnostics_sheet.dart';
 import 'notification_overlay.dart';
+import '../../l10n/rs_text.dart';
 
 abstract final class DesktopColors {
   static const window = Color(0xFF1E1F26);
@@ -176,15 +178,15 @@ enum DesktopSection {
   final IconData icon;
   const DesktopSection(this.label, this.icon);
 
-  String localizedLabel(ThemeController strings) => switch (this) {
-    DesktopSection.home => strings.tr('首页', 'Home'),
-    DesktopSection.proxy => strings.tr('代理', 'Proxies'),
-    DesktopSection.subscription => strings.tr('订阅', 'Subscriptions'),
-    DesktopSection.connections => strings.tr('连接', 'Connections'),
-    DesktopSection.rules => strings.tr('规则', 'Rules'),
-    DesktopSection.logs => strings.tr('日志', 'Logs'),
-    DesktopSection.test => strings.tr('测试', 'Tests'),
-    DesktopSection.settings => strings.tr('设置', 'Settings'),
+  String localizedLabel(AppLocalizations strings) => switch (this) {
+    DesktopSection.home => strings.navHome,
+    DesktopSection.proxy => strings.navProxies,
+    DesktopSection.subscription => strings.navSubscriptions,
+    DesktopSection.connections => strings.navConnections,
+    DesktopSection.rules => strings.navRules,
+    DesktopSection.logs => strings.navLogs,
+    DesktopSection.test => strings.navTests,
+    DesktopSection.settings => strings.navSettings,
   };
 }
 
@@ -313,7 +315,7 @@ class _DesktopAppState extends State<DesktopApp> with WidgetsBindingObserver {
       controller.reportExternalRecoveryFailure(lastFailure ?? '未知错误');
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('TUN 自动恢复失败：$lastFailure')));
+            .showSnackBar(SnackBar(content: RsText('TUN 自动恢复失败：$lastFailure')));
       }
     } finally {
       _recoveringExternalTun = false;
@@ -328,7 +330,7 @@ class _DesktopAppState extends State<DesktopApp> with WidgetsBindingObserver {
         : await Process.run('open', [url]);
     if (result.exitCode != 0 && mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('打开链接失败：${result.stderr}')));
+          .showSnackBar(SnackBar(content: RsText('打开链接失败：${result.stderr}')));
     }
   }
 
@@ -401,7 +403,7 @@ class _DesktopAppState extends State<DesktopApp> with WidgetsBindingObserver {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
+            content: RsText(
               '网络模式切换失败：$error\n'
               '详细日志：~/Library/Logs/ClashRS/network.log',
             ),
@@ -410,7 +412,9 @@ class _DesktopAppState extends State<DesktopApp> with WidgetsBindingObserver {
       }
       // 把堆栈也写一份到 network.log,方便自用排查
       // ignore: avoid_print
-      print('ClashRS.Network 切换失败: $error\n$stack');
+      print(
+        '${AppLog.pick('ClashRS.Network 切换失败', 'ClashRS.Network switch failed')}: $error\n$stack',
+      );
       try {
         if (previous == DesktopNetworkMode.tun) {
           final profile = controller.activeProfile;
@@ -505,6 +509,10 @@ class _DesktopAppState extends State<DesktopApp> with WidgetsBindingObserver {
         child: ListenableBuilder(
           listenable: Listenable.merge([controller, network as Listenable]),
           builder: (context, _) {
+            final strings = Localizations.of<AppLocalizations>(
+              context,
+              AppLocalizations,
+            );
             // 状态变化时弹 banner：错误变化 / 启动成功
             WidgetsBinding.instance.addPostFrameCallback((_) {
               final err = controller.error;
@@ -515,7 +523,7 @@ class _DesktopAppState extends State<DesktopApp> with WidgetsBindingObserver {
                 unawaited(
                   showNotificationBanner(
                     context,
-                    title: '运行错误',
+                    title: context.rsText('运行错误'),
                     body: err,
                     accent: Colors.redAccent,
                   ),
@@ -527,11 +535,12 @@ class _DesktopAppState extends State<DesktopApp> with WidgetsBindingObserver {
                   controller.startedAt != null &&
                   _lastStartedAt != controller.startedAt) {
                 _lastStartedAt = controller.startedAt;
+                final modeLabel = _localizedProxyMode(context, controller.proxyMode);
                 unawaited(
                   showNotificationBanner(
                     context,
-                    title: '代理已启动',
-                    body: '运行模式：${controller.proxyMode}',
+                    title: context.rsText('代理已启动'),
+                    body: '${context.rsText('运行模式')}：$modeLabel',
                     accent: const Color(0xFF2AD364),
                   ),
                 );
@@ -552,13 +561,10 @@ class _DesktopAppState extends State<DesktopApp> with WidgetsBindingObserver {
                         children: [
                           DesktopHeader(
                             title: section == DesktopSection.proxy
-                                ? controller.themeController.tr(
-                                    '代理组',
-                                    'Proxy Groups',
-                                  )
-                                : section.localizedLabel(
-                                    controller.themeController,
-                                  ),
+                                ? strings?.proxyGroups ?? '代理组'
+                                : strings == null
+                                ? section.label
+                                : section.localizedLabel(strings),
                             trailing: section == DesktopSection.subscription
                                 ? SubscriptionHeaderActions(
                                     controller: controller,
@@ -625,6 +631,10 @@ class DesktopSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = Localizations.of<AppLocalizations>(
+      context,
+      AppLocalizations,
+    );
     final light = Theme.of(context).brightness == Brightness.light;
     final foreground = light
         ? const Color(0xFF353A46)
@@ -647,7 +657,7 @@ class DesktopSidebar extends StatelessWidget {
                 _CatMark(size: 30),
                 const SizedBox(width: 10),
                 Flexible(
-                  child: Text(
+                  child: RsText(
                     'Clash RS',
                     maxLines: 1,
                     overflow: TextOverflow.fade,
@@ -672,7 +682,7 @@ class DesktopSidebar extends StatelessWidget {
                   for (final item in DesktopSection.values)
                     _SidebarItem(
                       item: item,
-                      strings: controller.themeController,
+                      strings: strings,
                       selected: item == selected,
                       foreground: foreground,
                       onTap: () => onSelected(item),
@@ -695,7 +705,7 @@ class DesktopSidebar extends StatelessWidget {
 
 class _SidebarItem extends StatelessWidget {
   final DesktopSection item;
-  final ThemeController strings;
+  final AppLocalizations? strings;
   final Color foreground;
   final bool selected;
   final VoidCallback onTap;
@@ -732,7 +742,7 @@ class _SidebarItem extends StatelessWidget {
               ),
               const SizedBox(width: 28),
               Text(
-                item.localizedLabel(strings),
+                strings == null ? item.label : item.localizedLabel(strings!),
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
@@ -790,17 +800,17 @@ class DesktopHeader extends StatelessWidget {
             trailing!
           else ...[
             _HeaderIcon(
-              tooltip: '首页',
+              tooltip: context.rsText('首页'),
               onPressed: onHome,
               icon: Icons.touch_app_outlined,
             ),
             _HeaderIcon(
-              tooltip: '帮助',
+              tooltip: context.rsText('帮助'),
               onPressed: onDiagnostics,
               icon: Icons.help_outline,
             ),
             _HeaderIcon(
-              tooltip: '设置',
+              tooltip: context.rsText('设置'),
               onPressed: onSettings,
               icon: Icons.settings_outlined,
             ),
@@ -846,7 +856,11 @@ class SettingsHeaderActions extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      _HeaderIcon(tooltip: '帮助', onPressed: onHelp, icon: Icons.help_outline),
+      _HeaderIcon(
+        tooltip: context.rsText('帮助'),
+        onPressed: onHelp,
+        icon: Icons.help_outline,
+      ),
       _HeaderIcon(
         tooltip: 'Telegram',
         onPressed: onTelegram,
@@ -862,63 +876,6 @@ class SettingsHeaderActions extends StatelessWidget {
 }
 
 /// 公共卡组件（保留向后兼容，新代码请用 RsCard）。
-class DesktopCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color accent;
-  final Widget child;
-  final Widget? trailing;
-  const DesktopCard({
-    super.key,
-    required this.title,
-    required this.icon,
-    required this.child,
-    this.accent = const Color(0xFF168BFA),
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: DesktopColors.card,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFF303341)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          height: 84,
-          child: Row(
-            children: [
-              const SizedBox(width: 28),
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: .12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: accent, size: 30),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-              trailing ?? const SizedBox.shrink(),
-              const SizedBox(width: 22),
-            ],
-          ),
-        ),
-        const Divider(height: 1),
-        child,
-      ],
-    ),
-  );
-}
 
 class DesktopPageHost extends StatelessWidget {
   final DesktopSection section;
@@ -1003,963 +960,6 @@ class _SettingsHostPageState extends State<_SettingsHostPage> {
   );
 }
 
-class SubscriptionCard extends StatelessWidget {
-  final ProxyAppController controller;
-  const SubscriptionCard({super.key, required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    final profile = controller.activeProfile;
-    final used = profile?.usedTrafficBytes ?? 0;
-    final total = profile?.totalTrafficBytes ?? 0;
-    final ratio = total <= 0 ? 0.0 : (used / total).clamp(0.0, 1.0);
-    return DesktopCard(
-      title: profile?.name ?? '尚未导入订阅',
-      icon: Icons.cloud_upload_outlined,
-      trailing: OutlinedButton.icon(
-        onPressed: profile == null
-            ? null
-            : () => controller.refreshProfile(profile),
-        icon: const Icon(Icons.sync, size: 18),
-        label: const Text('更新'),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _InfoLine(
-              icon: Icons.dns_outlined,
-              text: profile?.source ?? '从订阅页面添加 URL 或配置文件',
-              color: DesktopColors.blue,
-            ),
-            const SizedBox(height: 22),
-            _InfoLine(
-              icon: Icons.history,
-              text: '更新时间：${_dateTime(profile?.updatedAt)}',
-            ),
-            const SizedBox(height: 22),
-            _InfoLine(
-              icon: Icons.speed,
-              text:
-                  '已使用 / 总量：${_bytes(used)} / ${total > 0 ? _bytes(total) : '未提供'}',
-            ),
-            const SizedBox(height: 20),
-            Text('${(ratio * 100).round()}%'),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: ratio,
-              minHeight: 12,
-              borderRadius: BorderRadius.circular(8),
-              backgroundColor: const Color(0xFF253A59),
-              color: DesktopColors.blue,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class CurrentNodeCard extends StatelessWidget {
-  final ProxyAppController controller;
-  final VoidCallback onOpen;
-  const CurrentNodeCard({
-    super.key,
-    required this.controller,
-    required this.onOpen,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final group = controller.groups[controller.selectedGroup];
-    final node = group?.now.isNotEmpty == true ? group!.now : '尚未选择节点';
-    final delay = controller.delays[node];
-    final type = group?.nodeTypes[node] ?? 'Proxy';
-    return DesktopCard(
-      title: '当前节点',
-      icon: Icons.signal_cellular_alt_rounded,
-      accent: DesktopColors.green,
-      trailing: OutlinedButton.icon(
-        onPressed: onOpen,
-        icon: const Text('代理'),
-        label: const Icon(Icons.chevron_right),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(26),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF243044),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: DesktopColors.selected),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(node, style: const TextStyle(fontSize: 20)),
-                        const SizedBox(height: 7),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            Text(type),
-                            const _Pill(
-                              text: '全局模式',
-                              color: DesktopColors.blue,
-                            ),
-                            const _Pill(text: 'UDP'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  _DelayBadge(delay: delay),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            DropdownButtonFormField<String>(
-              initialValue: controller.selectedGroup,
-              decoration: const InputDecoration(labelText: '代理组'),
-              items: controller.groups.values
-                  .where((item) => item.all.isNotEmpty)
-                  .map(
-                    (item) => DropdownMenuItem(
-                      value: item.name,
-                      child: Text(item.name),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) controller.chooseGroup(value);
-              },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: group?.all.contains(node) == true ? node : null,
-              decoration: const InputDecoration(labelText: '节点'),
-              items: (group?.all ?? const [])
-                  .map(
-                    (item) => DropdownMenuItem(value: item, child: Text(item)),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) controller.chooseNode(value);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class NetworkCard extends StatelessWidget {
-  final ProxyAppController controller;
-  final DesktopNetworkService network;
-  final bool busy;
-  final ValueChanged<bool> onSystemProxy;
-  final VoidCallback onTun;
-  const NetworkCard({
-    super.key,
-    required this.controller,
-    required this.network,
-    required this.busy,
-    required this.onSystemProxy,
-    required this.onTun,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = network.mode == DesktopNetworkMode.systemProxy;
-    final tunEnabled = network.mode == DesktopNetworkMode.tun;
-    return DesktopCard(
-      title: '网络设置',
-      icon: Icons.dns_outlined,
-      child: Padding(
-        padding: const EdgeInsets.all(26),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _ModeButton(
-                    icon: Icons.laptop_mac,
-                    text: '系统代理',
-                    selected: enabled,
-                    onTap: busy ? null : () => onSystemProxy(true),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: _ModeButton(
-                    icon: Icons.manage_search,
-                    text: '虚拟网卡模式',
-                    selected: tunEnabled,
-                    onTap: busy ? null : onTun,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: DesktopColors.blue),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    controller.isRunning
-                        ? Icons.play_circle_outline
-                        : Icons.stop_circle_outlined,
-                    color: controller.isRunning
-                        ? DesktopColors.green
-                        : DesktopColors.muted,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      enabled
-                          ? '系统代理已启用，应用将通过当前节点访问网络'
-                          : tunEnabled
-                          ? '虚拟网卡已启用，系统流量正在全局接管'
-                          : '开启后自动配置当前网络服务',
-                      style: const TextStyle(color: DesktopColors.muted),
-                    ),
-                  ),
-                  if (busy)
-                    const SizedBox.square(
-                      dimension: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  else
-                    Switch(
-                      value: enabled || tunEnabled,
-                      onChanged: (value) =>
-                          tunEnabled ? onTun() : onSystemProxy(value),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class ProxyModeCard extends StatelessWidget {
-  final String value;
-  final ValueChanged<String> onChanged;
-  const ProxyModeCard({
-    super.key,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) => DesktopCard(
-    title: '代理模式',
-    icon: Icons.router_outlined,
-    child: Padding(
-      padding: const EdgeInsets.all(26),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              for (final item in const ['规则', '全局', '直连']) ...[
-                Expanded(
-                  child: _ModeButton(
-                    icon: item == '规则'
-                        ? Icons.multiple_stop
-                        : item == '全局'
-                        ? Icons.language
-                        : Icons.directions,
-                    text: item,
-                    selected: item == value,
-                    onTap: () => onChanged(item),
-                  ),
-                ),
-                if (item != '直连') const SizedBox(width: 12),
-              ],
-            ],
-          ),
-          const SizedBox(height: 22),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(17),
-            decoration: BoxDecoration(
-              border: Border.all(color: DesktopColors.blue),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              value == '全局'
-                  ? '所有流量均通过代理服务器，适用于需要全局访问的场景'
-                  : value == '规则'
-                  ? '按照当前配置中的规则自动选择代理或直连'
-                  : '所有流量直接连接，不经过代理服务器',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: DesktopColors.muted),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-class TrafficCard extends StatelessWidget {
-  final ProxyAppController controller;
-  const TrafficCard({super.key, required this.controller});
-  @override
-  Widget build(BuildContext context) => DesktopCard(
-    title: '流量统计',
-    icon: Icons.speed,
-    accent: DesktopColors.orange,
-    child: Padding(
-      padding: const EdgeInsets.all(28),
-      child: Row(
-        children: [
-          Expanded(
-            child: _Metric(
-              label: '实时上传',
-              value: '${_bytes(controller.uploadSpeed)}/s',
-              color: DesktopColors.orange,
-            ),
-          ),
-          Expanded(
-            child: _Metric(
-              label: '实时下载',
-              value: '${_bytes(controller.downloadSpeed)}/s',
-              color: DesktopColors.blue,
-            ),
-          ),
-          Expanded(
-            child: _Metric(
-              label: '活动连接',
-              value: '${controller.connections.length}',
-              color: controller.isRunning
-                  ? DesktopColors.green
-                  : DesktopColors.muted,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-class DesktopProxyPage extends StatelessWidget {
-  final ProxyAppController controller;
-  const DesktopProxyPage({super.key, required this.controller});
-  @override
-  Widget build(BuildContext context) {
-    final groups = controller.groups.values
-        .where((item) => item.all.isNotEmpty)
-        .toList();
-    final group = controller.groups[controller.selectedGroup];
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(22, 20, 22, 10),
-          child: Row(
-            children: [
-              Expanded(
-                child: Wrap(
-                  spacing: 10,
-                  children: groups
-                      .map(
-                        (item) => ChoiceChip(
-                          label: Text(item.name),
-                          selected: item.name == controller.selectedGroup,
-                          onSelected: (_) => controller.chooseGroup(item.name),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-              FilledButton.icon(
-                onPressed: controller.checkingDelays
-                    ? controller.cancelDelayChecks
-                    : controller.checkAllDelays,
-                icon: Icon(controller.checkingDelays ? Icons.stop : Icons.bolt),
-                label: Text(controller.checkingDelays ? '取消测速' : '全部测速'),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: group == null
-              ? const _DesktopEmpty(icon: Icons.wifi_off, title: '启动代理后显示节点')
-              : GridView.builder(
-                  padding: const EdgeInsets.all(22),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 430,
-                    mainAxisExtent: 112,
-                    crossAxisSpacing: 14,
-                    mainAxisSpacing: 14,
-                  ),
-                  itemCount: group.all.length,
-                  itemBuilder: (context, index) {
-                    final node = group.all[index];
-                    final selected = node == group.now;
-                    return Material(
-                      color: selected
-                          ? DesktopColors.selected
-                          : DesktopColors.card,
-                      borderRadius: BorderRadius.circular(10),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(10),
-                        onTap: () => controller.chooseNode(node),
-                        child: Padding(
-                          padding: const EdgeInsets.all(18),
-                          child: Row(
-                            children: [
-                              Icon(
-                                selected ? Icons.check_circle : Icons.public,
-                                color: selected
-                                    ? Colors.white
-                                    : DesktopColors.blue,
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      node,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 7),
-                                    Text(
-                                      group.nodeTypes[node] ?? 'Proxy',
-                                      style: const TextStyle(
-                                        color: DesktopColors.muted,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              InkWell(
-                                onTap: () => controller.checkNodeDelay(node),
-                                child: _DelayBadge(
-                                  delay: controller.delays[node],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-}
-
-class DesktopSubscriptionPage extends StatelessWidget {
-  final ProxyAppController controller;
-  const DesktopSubscriptionPage({super.key, required this.controller});
-  @override
-  Widget build(BuildContext context) => ListView.builder(
-    padding: const EdgeInsets.all(22),
-    itemCount: controller.profiles.length,
-    itemBuilder: (context, index) {
-      final profile = controller.profiles[index];
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 14),
-        child: DesktopCard(
-          title: profile.name,
-          icon: profile.active ? Icons.check_circle : Icons.cloud_outlined,
-          accent: profile.active ? DesktopColors.green : DesktopColors.blue,
-          trailing: Wrap(
-            spacing: 8,
-            children: [
-              OutlinedButton(
-                onPressed: () => controller.refreshProfile(profile),
-                child: const Text('更新'),
-              ),
-              FilledButton(
-                onPressed: profile.active
-                    ? null
-                    : () => controller.activateProfile(profile.id),
-                child: Text(profile.active ? '已激活' : '激活'),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    profile.source ?? profile.localYamlPath,
-                    style: const TextStyle(color: DesktopColors.muted),
-                  ),
-                ),
-                Text(_dateTime(profile.updatedAt)),
-              ],
-            ),
-          ),
-        ),
-      );
-    },
-  );
-}
-
-class DesktopConnectionsPage extends StatefulWidget {
-  final ProxyAppController controller;
-  const DesktopConnectionsPage({super.key, required this.controller});
-  @override
-  State<DesktopConnectionsPage> createState() => _DesktopConnectionsPageState();
-}
-
-class _DesktopConnectionsPageState extends State<DesktopConnectionsPage> {
-  @override
-  void initState() {
-    super.initState();
-    unawaited(widget.controller.refreshRuntimeDetails());
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final items = widget.controller.connections;
-    if (items.isEmpty) {
-      return const _DesktopEmpty(
-        icon: Icons.language,
-        title: '当前没有活动连接',
-        subtitle: '代理运行后将显示来源、目标、命中规则与流量',
-      );
-    }
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Text('${items.length} 个活动连接'),
-              const Spacer(),
-              OutlinedButton.icon(
-                onPressed: widget.controller.refreshRuntimeDetails,
-                icon: const Icon(Icons.refresh),
-                label: const Text('刷新'),
-              ),
-              const SizedBox(width: 10),
-              FilledButton.icon(
-                onPressed: widget.controller.closeAllConnections,
-                icon: const Icon(Icons.close),
-                label: const Text('关闭全部'),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final item = items[index];
-              final metadata = item['metadata'] as Map? ?? const {};
-              final id = item['id']?.toString() ?? '';
-              final host =
-                  metadata['host']?.toString() ??
-                  metadata['destinationIP']?.toString() ??
-                  '未知目标';
-              final chains = (item['chains'] as List?)?.join(' → ') ?? 'DIRECT';
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: DesktopColors.card,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.language, color: DesktopColors.blue),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            host,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            chains,
-                            style: const TextStyle(color: DesktopColors.muted),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: id.isEmpty
-                          ? null
-                          : () => widget.controller.closeConnection(id),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class DesktopRulesPage extends StatefulWidget {
-  final ProxyAppController controller;
-  const DesktopRulesPage({super.key, required this.controller});
-  @override
-  State<DesktopRulesPage> createState() => _DesktopRulesPageState();
-}
-
-class _DesktopRulesPageState extends State<DesktopRulesPage> {
-  @override
-  void initState() {
-    super.initState();
-    unawaited(widget.controller.refreshRuntimeDetails());
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final rules = widget.controller.rules;
-    if (rules.isEmpty) {
-      return _DesktopEmpty(
-        icon: Icons.call_split,
-        title: widget.controller.isRunning ? '当前配置没有可显示规则' : '启动代理后读取规则',
-        subtitle: '当前配置：${widget.controller.activeProfile?.name ?? '尚未配置'}',
-      );
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.all(22),
-      itemCount: rules.length,
-      separatorBuilder: (_, _) => const Divider(),
-      itemBuilder: (_, index) {
-        final rule = rules[index];
-        return ListTile(
-          leading: const Icon(Icons.call_split, color: DesktopColors.blue),
-          title: Text(
-            rule['payload']?.toString() ?? rule['type']?.toString() ?? '规则',
-          ),
-          subtitle: Text(rule['type']?.toString() ?? ''),
-          trailing: Text(
-            rule['proxy']?.toString() ?? rule['adapter']?.toString() ?? '',
-          ),
-        );
-      },
-    );
-  }
-}
-
-class DesktopLogsPage extends StatelessWidget {
-  final ProxyAppController controller;
-  const DesktopLogsPage({super.key, required this.controller});
-  @override
-  Widget build(BuildContext context) => controller.logs.isEmpty
-      ? const _DesktopEmpty(icon: Icons.segment, title: '暂无日志')
-      : ListView.separated(
-          padding: const EdgeInsets.all(22),
-          itemCount: controller.logs.length,
-          separatorBuilder: (_, _) => const Divider(),
-          itemBuilder: (_, index) => SelectableText(
-            controller.logs[index],
-            style: const TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 12.5,
-              height: 1.6,
-            ),
-          ),
-        );
-}
-
-class DesktopTestPage extends StatefulWidget {
-  final ProxyAppController controller;
-  const DesktopTestPage({super.key, required this.controller});
-  @override
-  State<DesktopTestPage> createState() => _DesktopTestPageState();
-}
-
-class _DesktopTestPageState extends State<DesktopTestPage> {
-  String result = '点击开始检查当前节点延迟与代理状态';
-  bool busy = false;
-  Future<void> run() async {
-    setState(() {
-      busy = true;
-      result = '正在执行网络检查…';
-    });
-    await widget.controller.checkAllDelays();
-    if (!mounted) return;
-    setState(() {
-      busy = false;
-      result = widget.controller.delays.isEmpty
-          ? '未获得延迟结果，请确认代理已经启动'
-          : '完成：${widget.controller.delays.length} 个节点返回延迟';
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: SizedBox(
-      width: 620,
-      child: DesktopCard(
-        title: '网络诊断',
-        icon: Icons.health_and_safety_outlined,
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                result,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 17),
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: busy ? null : run,
-                icon: const Icon(Icons.play_arrow),
-                label: Text(busy ? '检查中' : '开始检查'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-class DesktopSettingsPage extends StatelessWidget {
-  final ProxyAppController controller;
-  const DesktopSettingsPage({super.key, required this.controller});
-  @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(22),
-    children: [
-      DesktopCard(
-        title: '网络',
-        icon: Icons.dns_outlined,
-        child: Padding(
-          padding: const EdgeInsets.all(26),
-          child: Column(
-            children: [
-              const _SettingLine(title: 'HTTP 端口', value: '17890'),
-              const _SettingLine(title: 'SOCKS 端口', value: '17891'),
-              const _SettingLine(title: '混合端口', value: '17892'),
-              _SettingLine(
-                title: '控制端口',
-                value: '${controller.controllerPort}',
-              ),
-            ],
-          ),
-        ),
-      ),
-      const SizedBox(height: 18),
-      DesktopCard(
-        title: '应用',
-        icon: Icons.tune,
-        child: Padding(
-          padding: const EdgeInsets.all(26),
-          child: Column(
-            children: [
-              _SettingLine(
-                title: '自动重启',
-                value: controller.settings.autoRestart ? '已开启' : '已关闭',
-              ),
-              _SettingLine(
-                title: '显示流量',
-                value: controller.settings.showTraffic ? '已开启' : '已关闭',
-              ),
-              const _SettingLine(title: '关闭窗口', value: '驻留菜单栏'),
-            ],
-          ),
-        ),
-      ),
-    ],
-  );
-}
-
-class _SettingLine extends StatelessWidget {
-  final String title;
-  final String value;
-  const _SettingLine({required this.title, required this.value});
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 12),
-    child: Row(
-      children: [
-        Expanded(child: Text(title, style: const TextStyle(fontSize: 16))),
-        Text(value, style: const TextStyle(color: DesktopColors.muted)),
-      ],
-    ),
-  );
-}
-
-class _DesktopEmpty extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  const _DesktopEmpty({required this.icon, required this.title, this.subtitle});
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 64, color: DesktopColors.blue),
-        const SizedBox(height: 18),
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
-        if (subtitle != null) ...[
-          const SizedBox(height: 8),
-          Text(subtitle!, style: const TextStyle(color: DesktopColors.muted)),
-        ],
-      ],
-    ),
-  );
-}
-
-class _InfoLine extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final Color color;
-  const _InfoLine({
-    required this.icon,
-    required this.text,
-    this.color = DesktopColors.text,
-  });
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Icon(icon, size: 24),
-      const SizedBox(width: 14),
-      Expanded(
-        child: Text(
-          text,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 16, color: color),
-        ),
-      ),
-    ],
-  );
-}
-
-class _Pill extends StatelessWidget {
-  final String text;
-  final Color? color;
-  const _Pill({required this.text, this.color});
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: color,
-      border: Border.all(color: color ?? DesktopColors.border),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Text(text, style: const TextStyle(fontSize: 12)),
-  );
-}
-
-class _DelayBadge extends StatelessWidget {
-  final int? delay;
-  const _DelayBadge({this.delay});
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-    decoration: BoxDecoration(
-      color: delay == null ? DesktopColors.border : DesktopColors.green,
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Text(
-      delay == null
-          ? '—'
-          : delay! < 0
-          ? '失败'
-          : '$delay ms',
-      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
-    ),
-  );
-}
-
-class _ModeButton extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final bool selected;
-  final VoidCallback? onTap;
-  const _ModeButton({
-    required this.icon,
-    required this.text,
-    required this.selected,
-    required this.onTap,
-  });
-  @override
-  Widget build(BuildContext context) => Material(
-    color: selected ? DesktopColors.blue : DesktopColors.cardSoft,
-    borderRadius: BorderRadius.circular(8),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: SizedBox(
-        height: 62,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon),
-            const SizedBox(width: 10),
-            Text(
-              text,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-class _Metric extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  const _Metric({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-  @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Text(label, style: const TextStyle(color: DesktopColors.muted)),
-      const SizedBox(height: 8),
-      Text(
-        value,
-        style: TextStyle(
-          fontSize: 24,
-          color: color,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    ],
-  );
-}
-
 class _TrafficSparkline extends StatelessWidget {
   final int up;
   final int down;
@@ -1992,7 +992,7 @@ class _TrafficSparkline extends StatelessWidget {
                 ),
               ),
             ),
-            const Text(
+            const RsText(
               'B/s',
               style: TextStyle(fontSize: 13, color: DesktopColors.text),
             ),
@@ -2017,7 +1017,7 @@ class _TrafficSparkline extends StatelessWidget {
                 ),
               ),
             ),
-            const Text(
+            const RsText(
               'B/s',
               style: TextStyle(fontSize: 13, color: DesktopColors.text),
             ),
@@ -2028,12 +1028,12 @@ class _TrafficSparkline extends StatelessWidget {
           children: [
             const Icon(Icons.memory, size: 14, color: DesktopColors.muted),
             const SizedBox(width: 3),
-            const Text(
+            const RsText(
               '内存',
               style: TextStyle(fontSize: 13, color: DesktopColors.text),
             ),
             const Spacer(),
-            Text(
+            RsText(
               '$memoryMb MB',
               style: const TextStyle(fontSize: 13, color: DesktopColors.text),
             ),
@@ -2119,15 +1119,14 @@ class _CatMarkPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-String _dateTime(DateTime? value) {
-  if (value == null) return '尚未更新';
-  String two(int number) => number.toString().padLeft(2, '0');
-  return '${value.year}-${two(value.month)}-${two(value.day)} ${two(value.hour)}:${two(value.minute)}';
-}
-
-String _bytes(int value) {
-  if (value >= 1 << 30) return '${(value / (1 << 30)).toStringAsFixed(2)} GB';
-  if (value >= 1 << 20) return '${(value / (1 << 20)).toStringAsFixed(2)} MB';
-  if (value >= 1 << 10) return '${(value / (1 << 10)).toStringAsFixed(2)} KB';
-  return '$value B';
+/// 把 controller.proxyMode（'rule'/'global'/'direct'）翻译成本地化标签。
+String _localizedProxyMode(BuildContext context, String mode) {
+  final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
+  if (l10n == null) return mode;
+  return switch (mode) {
+    'rule' => l10n.proxyModeRule,
+    'global' => l10n.proxyModeGlobal,
+    'direct' => l10n.proxyModeDirect,
+    _ => mode,
+  };
 }

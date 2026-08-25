@@ -39,6 +39,7 @@ The current release provides the macOS DMG. Windows and Linux packages are avail
 - Enable system proxy or virtual network adapter (TUN) mode.
 - View real-time upload/download traffic, memory usage, connections, rules, and logs.
 - Recover previous system proxy settings after a crash or abnormal exit.
+- Switch the desktop interface offline between Simplified Chinese, Traditional Chinese, English, Japanese, Korean, and French.
 - Share one Flutter desktop UI across macOS, Windows, and Linux.
 - Build versioned packages with manifests and SHA-256 checksums.
 

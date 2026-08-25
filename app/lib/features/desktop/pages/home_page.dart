@@ -4,12 +4,19 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../platform/desktop/desktop_network_service.dart';
 import '../../../services/home_layout.dart';
 import '../../../services/proxy_app_controller.dart';
 import '../../../core/ffi/clash_controller.dart' show TrafficStats;
 import '../desktop_app.dart' show DesktopSection;
 import 'widgets.dart';
+import '../../../l10n/rs_text.dart';
+
+bool _usesLongLocalizedCopy(BuildContext context) {
+  final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
+  return l10n != null && l10n.localeName != 'zh' && l10n.localeName != 'zh_TW';
+}
 
 /// mac-1001 / 1002 / 1003 合一的大屏仪表盘。
 class HomePage extends StatelessWidget {
@@ -67,6 +74,13 @@ class HomePage extends StatelessWidget {
     final order = layout.resolvedOrder();
     final visible = order.where((id) => !layout.isHidden(id)).toList();
 
+    // 非中文 locale（en/ja/ko/fr）的文案通常更长（单词 / 假名 / 谚文字符宽度不同），
+    // 给每行 +20px buffer，避免 RenderFlex overflow。
+    // 中文（zh / zh_TW）保持原高度，不影响 golden image。
+    const longCopyBuffer = 20.0;
+    final longCopy = _usesLongLocalizedCopy(context);
+    double h(double base) => longCopy ? base + longCopyBuffer : base;
+
     // 顶部 row1：subscription / currentNode / network / proxyMode，2x2
     // 中部：traffic 全宽 + metrics 2x3
     // 底部：siteTest(8) + ipInfo(4)
@@ -121,7 +135,7 @@ class HomePage extends StatelessWidget {
       // Row 1: subscription(6) | currentNode(6) — 需要较高容纳 dropdown
       if (visible.contains('subscription') && visible.contains('currentNode')) {
         out.add(
-          _row2(build('subscription'), build('currentNode'), height: 272),
+          _row2(build('subscription'), build('currentNode'), height: h(272)),
         );
         out.add(_gap());
       } else if (visible.contains('subscription')) {
@@ -132,7 +146,7 @@ class HomePage extends StatelessWidget {
         out.add(_gap());
       }
       if (visible.contains('network') && visible.contains('proxyMode')) {
-        out.add(_row2(build('network'), build('proxyMode'), height: 233));
+        out.add(_row2(build('network'), build('proxyMode'), height: h(233)));
         out.add(_gap());
       } else if (visible.contains('network')) {
         out.add(build('network'));
@@ -148,7 +162,7 @@ class HomePage extends StatelessWidget {
       }
       // Row 3: siteTest (2/3) + ipInfo (1/3) — 站点测试单行 tile 较高
       if (visible.contains('siteTest') && visible.contains('ipInfo')) {
-        out.add(_row2(build('siteTest'), build('ipInfo'), height: 360));
+        out.add(_row2(build('siteTest'), build('ipInfo'), height: h(360)));
         out.add(_gap());
       } else if (visible.contains('siteTest')) {
         out.add(build('siteTest'));
@@ -159,7 +173,7 @@ class HomePage extends StatelessWidget {
       }
       // Row 4: clashInfo | systemInfo
       if (visible.contains('clashInfo') && visible.contains('systemInfo')) {
-        out.add(_row2(build('clashInfo'), build('systemInfo'), height: 291));
+        out.add(_row2(build('clashInfo'), build('systemInfo'), height: h(291)));
       } else if (visible.contains('clashInfo')) {
         out.add(build('clashInfo'));
       } else if (visible.contains('systemInfo')) {
@@ -223,6 +237,7 @@ class _SubscriptionCard extends StatelessWidget {
     final ratio = total <= 0 ? 0.0 : (used / total).clamp(0.0, 1.0);
     return RsCard(
       title: profile?.name ?? '尚未导入订阅',
+      translateTitle: profile == null,
       icon: Icons.cloud_upload_outlined,
       accent: const Color(0xFF168BFA),
       titleStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
@@ -257,7 +272,7 @@ class _SubscriptionCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 14),
-          Text(
+          RsText(
             '${(ratio * 100).round()}%',
             style: const TextStyle(fontSize: 13, color: Color(0xFFCDCED4)),
           ),
@@ -314,7 +329,7 @@ class _SubscriptionBadge extends StatelessWidget {
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
+            RsText(
               '订阅',
               style: TextStyle(
                 color: Color(0xFF168BFA),
@@ -416,15 +431,25 @@ class _CurrentNodeCardState extends State<_CurrentNodeCard> {
                             Row(
                               children: [
                                 Expanded(
-                                  child: Text(
-                                    node ?? '尚未选择节点',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                  child: node == null
+                                      ? const RsText(
+                                          '尚未选择节点',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        )
+                                      : Text(
+                                          node,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                 ),
                               ],
                             ),
@@ -501,7 +526,7 @@ class _CurrentNodeTrailing extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       IconButton(
-        tooltip: '打开代理页',
+        tooltip: context.rsText('打开代理页'),
         onPressed: onTap,
         icon: const Icon(Icons.speed_rounded, size: 20),
         padding: EdgeInsets.zero,
@@ -509,7 +534,7 @@ class _CurrentNodeTrailing extends StatelessWidget {
         visualDensity: VisualDensity.compact,
       ),
       IconButton(
-        tooltip: '选择节点',
+        tooltip: context.rsText('选择节点'),
         onPressed: onTap,
         icon: const Icon(Icons.sort_rounded, size: 18),
         padding: EdgeInsets.zero,
@@ -533,7 +558,7 @@ class _CurrentNodeTrailing extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  RsText(
                     '代理',
                     style: TextStyle(
                       color: Color(0xFF168BFA),
@@ -564,7 +589,7 @@ class _MiniTag extends StatelessWidget {
       color: color,
       borderRadius: BorderRadius.circular(14),
     ),
-    child: Text(
+    child: RsText(
       label,
       style: const TextStyle(
         color: Colors.white,
@@ -586,7 +611,7 @@ class _OutlineTag extends StatelessWidget {
       border: Border.all(color: const Color(0xFF686B76)),
       borderRadius: BorderRadius.circular(10),
     ),
-    child: Text(
+    child: RsText(
       label,
       style: const TextStyle(color: Color(0xFFCDCED4), fontSize: 10),
     ),
@@ -604,7 +629,7 @@ class _DelayChip extends StatelessWidget {
       color: color,
       borderRadius: BorderRadius.circular(20),
     ),
-    child: Text(
+    child: RsText(
       '$ms',
       style: TextStyle(
         color: color.computeLuminance() > .45 ? Colors.black : Colors.white,
@@ -671,7 +696,7 @@ class _SelectorField extends StatelessWidget {
           child: Container(
             color: const Color(0xFF272A36),
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
+            child: RsText(
               label,
               style: const TextStyle(color: Color(0xFF9B9DA9), fontSize: 11),
             ),
@@ -752,7 +777,7 @@ class _NodeSelectorField extends StatelessWidget {
           child: Container(
             color: const Color(0xFF272A36),
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
+            child: RsText(
               label,
               style: TextStyle(
                 color: value == null
@@ -958,7 +983,7 @@ class _SystemProxyToggleRow extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         const Expanded(
-          child: Text(
+          child: RsText(
             '系统代理',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
@@ -1003,7 +1028,7 @@ class _TunToggleRow extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: Text(
+          child: RsText(
             '虚拟网卡模式',
             style: TextStyle(
               fontSize: 14,
@@ -1020,7 +1045,7 @@ class _TunToggleRow extends StatelessWidget {
           const Icon(Icons.warning_rounded, color: Color(0xFFB17A38), size: 18),
           const SizedBox(width: 6),
           IconButton(
-            tooltip: '安装服务',
+            tooltip: context.rsText('安装服务'),
             onPressed: onInstall,
             visualDensity: VisualDensity.compact,
             icon: const Icon(
@@ -1061,32 +1086,33 @@ class _NetworkStatusBanner extends StatelessWidget {
     final IconData icon;
     if (panel == _NetworkPanel.systemProxy) {
       if (mode == DesktopNetworkMode.systemProxy) {
-        text = '系统代理已启用，您的应用将通过代理访问网络';
+        text = context.rsText('系统代理已启用，您的应用将通过代理访问网络');
         color = const Color(0xFF168BFA);
         icon = Icons.check_circle_outline;
       } else if (lastError != null) {
-        text = '上次切换失败：$lastError';
+        // lastError 已通过 AppLog.pick 本地化（zh-CN 显示中文，其他 locale 英文）。
+        text = lastError!;
         color = const Color(0xFFFFA20F);
         icon = Icons.error_outline;
       } else {
-        text = '系统代理未启用，请通过下方开关启用';
+        text = context.rsText('系统代理未启用，请通过下方开关启用');
         color = const Color(0xFF168BFA);
         icon = Icons.help_outline;
       }
     } else if (!helperReady) {
-      text = 'TUN 模式需要服务模式，请先安装服务';
+      text = context.rsText('TUN 模式需要服务模式，请先安装服务');
       color = const Color(0xFF168BFA);
       icon = Icons.help_outline;
     } else if (mode == DesktopNetworkMode.tun) {
-      text = '虚拟网卡已启用，所有流量由 TUN 接口接管';
+      text = context.rsText('虚拟网卡已启用，所有流量由 TUN 接口接管');
       color = const Color(0xFF168BFA);
       icon = Icons.check_circle_outline;
     } else if (lastError != null) {
-      text = '上次切换失败：$lastError';
+      text = lastError!;
       color = const Color(0xFFFFA20F);
       icon = Icons.error_outline;
     } else {
-      text = '虚拟网卡未启用，开启后将接管所有流量';
+      text = context.rsText('虚拟网卡未启用，开启后将接管所有流量');
       color = const Color(0xFF168BFA);
       icon = Icons.help_outline;
     }
@@ -1101,9 +1127,11 @@ class _NetworkStatusBanner extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
+            child: RsText(
               text,
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: color == const Color(0xFFFFA20F)
                     ? color
@@ -1152,7 +1180,7 @@ class _NetworkTab extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Flexible(
-              child: Text(
+              child: RsText(
                 label,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -1248,7 +1276,7 @@ class _ProxyModeCardState extends State<_ProxyModeCard> {
               border: Border.all(color: const Color(0xFF168BFA)),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: Text(
+            child: RsText(
               _modeHint(mode),
               textAlign: TextAlign.center,
               style: const TextStyle(color: Color(0xFF9699A6), fontSize: 12),
@@ -1327,7 +1355,7 @@ class _ModeBtn extends StatelessWidget {
           children: [
             Icon(icon, size: 18, color: Colors.white),
             const SizedBox(width: 8),
-            Text(
+            RsText(
               label,
               style: TextStyle(
                 color: Colors.white,
@@ -1382,12 +1410,12 @@ class _TrafficChartCard extends StatelessWidget {
                       onTap: controller.refreshRuntimeDetails,
                     ),
                     const Spacer(),
-                    const Text(
+                    const RsText(
                       '上传',
                       style: TextStyle(color: Color(0xFFFFA20F), fontSize: 12),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
+                    const RsText(
                       '下载',
                       style: TextStyle(color: Color(0xFF168BFA), fontSize: 12),
                     ),
@@ -1405,14 +1433,14 @@ class _TrafficChartCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    RsText(
                       'Points: ${samples.length}  |  Compressed: ${(samples.length / 4).round()}  |  FPS: 15',
                       style: const TextStyle(
                         color: Color(0xFF6F7280),
                         fontSize: 10,
                       ),
                     ),
-                    Text(
+                    RsText(
                       'Smooth',
                       style: const TextStyle(
                         color: Color(0xFF6F7280),
@@ -1529,7 +1557,7 @@ class _RangeChip extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        child: Text(
+        child: RsText(
           label,
           style: TextStyle(
             color: const Color(0xFFCDCED4),
@@ -1747,7 +1775,7 @@ class _MetricCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
+                RsText(
                   label,
                   style: const TextStyle(
                     color: Color(0xFF9B9DA9),
@@ -1861,12 +1889,12 @@ class _SiteTestCardState extends State<_SiteTestCard> {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            tooltip: '测速',
+            tooltip: context.rsText('测速'),
             onPressed: _runAll,
             icon: const Icon(Icons.wifi_find, size: 18),
           ),
           IconButton(
-            tooltip: '添加',
+            tooltip: context.rsText('添加'),
             onPressed: widget.onOpen,
             icon: const Icon(Icons.add, size: 18),
           ),
@@ -1947,7 +1975,7 @@ class _SiteTile extends StatelessWidget {
             color: const Color(0xFF444756).withValues(alpha: .4),
           ),
           const SizedBox(height: 6),
-          Text(
+          RsText(
             running
                 ? '检测中…'
                 : success
@@ -2166,7 +2194,7 @@ class _IpInfoCardState extends State<_IpInfoCard> {
       icon: Icons.location_on_outlined,
       accent: const Color(0xFF168BFA),
       trailing: IconButton(
-        tooltip: '刷新',
+        tooltip: context.rsText('刷新'),
         onPressed: () => controller.refreshIpInfo(),
         icon: const Icon(Icons.refresh, size: 18),
       ),
@@ -2200,9 +2228,9 @@ class _IpInfoCardState extends State<_IpInfoCard> {
                         const SizedBox(height: 14),
                         Row(
                           children: [
-                            const Text('IP：', style: TextStyle(fontSize: 14)),
+                            const RsText('IP：', style: TextStyle(fontSize: 14)),
                             Expanded(
-                              child: Text(
+                              child: RsText(
                                 info.ip.isEmpty
                                     ? (info.loading ? '查询中…' : '—')
                                     : _maskIp(info.ip),
@@ -2218,7 +2246,7 @@ class _IpInfoCardState extends State<_IpInfoCard> {
                           ],
                         ),
                         const SizedBox(height: 14),
-                        Text(
+                        RsText(
                           '自治域：${info.asn.isEmpty ? '—' : info.asn}',
                           style: const TextStyle(fontSize: 14),
                         ),
@@ -2249,7 +2277,7 @@ class _IpInfoCardState extends State<_IpInfoCard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                RsText(
                   '自动刷新：${refreshSeconds}s',
                   style: const TextStyle(
                     color: Color(0xFF9B9DA9),
@@ -2276,7 +2304,7 @@ class _IpInfoCardState extends State<_IpInfoCard> {
   Widget _ipDetailRow(String label, String value, {int maxLines = 1}) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('$label：', style: const TextStyle(fontSize: 14)),
+      RsText('$label：', style: const TextStyle(fontSize: 14)),
       Expanded(
         child: Text(
           value.isEmpty ? '—' : value,
@@ -2407,7 +2435,7 @@ class _ClashInfoCard extends StatelessWidget {
       icon: Icons.memory,
       accent: const Color(0xFFFFA20F),
       trailing: IconButton(
-        tooltip: '设置',
+        tooltip: context.rsText('设置'),
         onPressed: onSettingsTap,
         icon: const Icon(Icons.settings_outlined, size: 18),
       ),
@@ -2415,38 +2443,64 @@ class _ClashInfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _kv('内核版本', controller.engineVersion),
+          _kv(context, '内核版本', controller.engineVersion),
           const _Divider(),
           _kv(
+            context,
             '系统代理地址',
             '127.0.0.1:${controller.settings.overrides['port'] ?? '7897'}',
           ),
           const _Divider(),
           _kv(
+            context,
             '混合代理端口',
             controller.settings.overrides['mixed-port'] ??
                 controller.settings.overrides['port'] ??
                 '7897',
           ),
           const _Divider(),
-          _kv('运行时间', _formatUptime(controller.startedAt)),
+          _kv(context, '运行时间', _formatUptime(controller.startedAt)),
           const _Divider(),
-          _kv('规则数量', '${controller.ruleCount}'),
+          _kv(context, '规则数量', '${controller.ruleCount}'),
         ],
       ),
     );
   }
 
-  Widget _kv(String k, String v) => Padding(
+  Widget _kv(BuildContext context, String k, String v) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 10.5),
     child: Row(
       children: [
-        Text(k, style: const TextStyle(color: Color(0xFFCDCED4), fontSize: 14)),
+        if (_usesLongLocalizedCopy(context))
+          Flexible(
+            child: RsText(
+              k,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Color(0xFFCDCED4), fontSize: 14),
+            ),
+          )
+        else
+          RsText(
+            k,
+            style: const TextStyle(color: Color(0xFFCDCED4), fontSize: 14),
+          ),
         const Spacer(),
-        Text(
-          v,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
+        if (_usesLongLocalizedCopy(context))
+          Flexible(
+            child: RsText(
+              v,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+          )
+        else
+          RsText(
+            v,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
       ],
     ),
   );
@@ -2479,7 +2533,7 @@ class _SystemInfoCard extends StatelessWidget {
       icon: Icons.info_outline,
       accent: const Color(0xFFFF3B5B),
       trailing: IconButton(
-        tooltip: '设置',
+        tooltip: context.rsText('设置'),
         onPressed: onSettingsTap,
         icon: const Icon(Icons.settings_outlined, size: 18),
       ),
@@ -2487,9 +2541,10 @@ class _SystemInfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _kv('操作系统信息', _osLabel()),
+          _kv(context, '操作系统信息', _osLabel()),
           const _Divider(),
           _kv(
+            context,
             '开机自启',
             settings.launchAtStartup ? '已启用' : '未启用',
             chipColor: settings.launchAtStartup
@@ -2498,15 +2553,16 @@ class _SystemInfoCard extends StatelessWidget {
           ),
           const _Divider(),
           _kv(
+            context,
             '运行模式',
             '用户模式',
             trailingIcon: Icons.star,
             chipColor: const Color(0xFF168BFA),
           ),
           const _Divider(),
-          _kv('最后检查更新', _lastCheckLabel(), link: true),
+          _kv(context, '最后检查更新', _lastCheckLabel(), link: true),
           const _Divider(),
-          _kv('RS 版本', 'v1.0.0'),
+          _kv(context, 'RS 版本', 'v1.0.0'),
         ],
       ),
     );
@@ -2536,6 +2592,7 @@ class _SystemInfoCard extends StatelessWidget {
   }
 
   Widget _kv(
+    BuildContext context,
     String k,
     String v, {
     Color? chipColor,
@@ -2545,26 +2602,82 @@ class _SystemInfoCard extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 10.5),
     child: Row(
       children: [
-        Text(k, style: const TextStyle(color: Color(0xFFCDCED4), fontSize: 14)),
+        if (_usesLongLocalizedCopy(context))
+          Flexible(
+            child: RsText(
+              k,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Color(0xFFCDCED4), fontSize: 14),
+            ),
+          )
+        else
+          RsText(
+            k,
+            style: const TextStyle(color: Color(0xFFCDCED4), fontSize: 14),
+          ),
         const Spacer(),
         if (chipColor != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: chipColor.withValues(alpha: .14),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
+          if (_usesLongLocalizedCopy(context))
+            Flexible(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: chipColor.withValues(alpha: .14),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: RsText(
+                    v,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: chipColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: chipColor.withValues(alpha: .14),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: RsText(
+                v,
+                style: TextStyle(
+                  color: chipColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+        else if (_usesLongLocalizedCopy(context))
+          Flexible(
+            child: RsText(
               v,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
               style: TextStyle(
-                color: chipColor,
-                fontSize: 12,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
+                decoration: link ? TextDecoration.underline : null,
+                decorationColor: const Color(0xFF168BFA),
+                color: link ? const Color(0xFF168BFA) : null,
               ),
             ),
           )
         else
-          Text(
+          RsText(
             v,
             style: TextStyle(
               fontSize: 14,
@@ -2597,7 +2710,7 @@ class _InfoLine extends StatelessWidget {
       Icon(icon, size: 18, color: const Color(0xFFCDCED4)),
       const SizedBox(width: 9),
       Expanded(
-        child: Text(
+        child: RsText(
           text,
           style: const TextStyle(fontSize: 14, color: Color(0xFFF7F7FA)),
           maxLines: 1,
@@ -2618,7 +2731,7 @@ class _SourceInfoLine extends StatelessWidget {
     children: [
       Icon(icon, size: 18, color: const Color(0xFFCDCED4)),
       const SizedBox(width: 9),
-      const Text(
+      const RsText(
         '来自：',
         style: TextStyle(fontSize: 14, color: Color(0xFFF7F7FA)),
       ),
@@ -2726,7 +2839,7 @@ class _LayoutEditorTile extends StatelessWidget {
                 color: Color(0xFF168BFA),
               ),
               SizedBox(width: 8),
-              Text(
+              RsText(
                 '编辑首页布局',
                 style: TextStyle(
                   color: Color(0xFF168BFA),
@@ -2771,7 +2884,7 @@ class _HomeLayoutEditor extends StatelessWidget {
                         size: 20,
                       ),
                       const SizedBox(width: 8),
-                      const Text(
+                      const RsText(
                         '首页布局',
                         style: TextStyle(
                           fontSize: 16,
@@ -2780,14 +2893,14 @@ class _HomeLayoutEditor extends StatelessWidget {
                       ),
                       const Spacer(),
                       IconButton(
-                        tooltip: '关闭',
+                        tooltip: context.rsText('关闭'),
                         onPressed: () => Navigator.pop(context),
                         icon: const Icon(Icons.close, size: 18),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  const RsText(
                     '上下移动调整顺序，勾选切换显示',
                     style: TextStyle(color: Color(0xFF9B9DA9), fontSize: 12),
                   ),
@@ -2820,7 +2933,7 @@ class _HomeLayoutEditor extends StatelessWidget {
                                 visualDensity: VisualDensity.compact,
                               ),
                               Expanded(
-                                child: Text(
+                                child: RsText(
                                   title,
                                   style: TextStyle(
                                     fontSize: 13,
@@ -2834,7 +2947,7 @@ class _HomeLayoutEditor extends StatelessWidget {
                                 ),
                               ),
                               IconButton(
-                                tooltip: '上移',
+                                tooltip: context.rsText('上移'),
                                 onPressed: i == 0
                                     ? null
                                     : () => controller.reorderHomeCard(
@@ -2845,7 +2958,7 @@ class _HomeLayoutEditor extends StatelessWidget {
                                 visualDensity: VisualDensity.compact,
                               ),
                               IconButton(
-                                tooltip: '下移',
+                                tooltip: context.rsText('下移'),
                                 onPressed: i == order.length - 1
                                     ? null
                                     : () => controller.reorderHomeCard(
@@ -2871,7 +2984,7 @@ class _HomeLayoutEditor extends StatelessWidget {
                         onPressed: () async {
                           await controller.updateHomeLayout(const HomeLayout());
                         },
-                        child: const Text('重置默认'),
+                        child: const RsText('重置默认'),
                       ),
                       const SizedBox(width: 8),
                       FilledButton(
@@ -2879,7 +2992,7 @@ class _HomeLayoutEditor extends StatelessWidget {
                         style: FilledButton.styleFrom(
                           backgroundColor: const Color(0xFF168BFA),
                         ),
-                        child: const Text('完成'),
+                        child: const RsText('完成'),
                       ),
                     ],
                   ),

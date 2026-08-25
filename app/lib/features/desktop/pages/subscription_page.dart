@@ -9,6 +9,7 @@ import '../../../services/proxy_app_controller.dart';
 import '../../../services/refresh_diff.dart';
 import '../desktop_app.dart' show DesktopColors;
 import 'widgets.dart';
+import '../../../l10n/rs_text.dart';
 
 /// mac-1005 订阅页面。
 class SubscriptionPage extends StatefulWidget {
@@ -37,7 +38,7 @@ class SubscriptionHeaderActions extends StatelessWidget {
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: RsText('$error')));
       }
     }
   }
@@ -52,7 +53,7 @@ class SubscriptionHeaderActions extends StatelessWidget {
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: RsText('$error')));
       }
     }
   }
@@ -73,7 +74,7 @@ class SubscriptionHeaderActions extends StatelessWidget {
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: RsText('$error')));
       }
     }
   }
@@ -86,7 +87,7 @@ class SubscriptionHeaderActions extends StatelessWidget {
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: RsText('$error')));
       }
     }
   }
@@ -96,22 +97,22 @@ class SubscriptionHeaderActions extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       _TopAction(
-        tooltip: '粘贴并导入',
+        tooltip: context.rsText('粘贴并导入'),
         icon: Icons.crop_square_rounded,
         onPressed: () => _pasteImport(context),
       ),
       _TopAction(
-        tooltip: '刷新全部订阅',
+        tooltip: context.rsText('刷新全部订阅'),
         icon: Icons.refresh_rounded,
         onPressed: () => _refreshAll(context),
       ),
       _TopAction(
-        tooltip: '导入配置文件',
+        tooltip: context.rsText('导入配置文件'),
         icon: Icons.description_outlined,
         onPressed: () => _importFile(context),
       ),
       _TopAction(
-        tooltip: '刷新当前订阅',
+        tooltip: context.rsText('刷新当前订阅'),
         icon: Icons.local_fire_department,
         color: const Color(0xFF168BFA),
         onPressed: () => _refreshActive(context),
@@ -179,7 +180,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: RsText('$error')));
       }
     } finally {
       if (mounted) setState(() => importing = false);
@@ -191,16 +192,16 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     final name = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('重命名配置'),
+        title: const RsText('重命名配置'),
         content: TextField(controller: field, autofocus: true),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: const RsText('取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, field.text),
-            child: const Text('保存'),
+            child: const RsText('保存'),
           ),
         ],
       ),
@@ -222,7 +223,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('$profileName · 刷新差异'),
+        title: RsText('$profileName · 刷新差异'),
         content: SizedBox(
           width: 560,
           child: SelectionArea(
@@ -230,7 +231,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                RsText(
                   diff.hasChanges ? diff.summary : '配置无变化',
                   style: TextStyle(
                     color: diff.hasChanges
@@ -243,7 +244,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                 for (final line in diff.detailLines)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 6),
-                    child: Text(line),
+                    child: RsText(line),
                   ),
               ],
             ),
@@ -252,7 +253,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('完成'),
+            child: const RsText('完成'),
           ),
         ],
       ),
@@ -266,24 +267,24 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     final saved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title),
+        title: RsText(title),
         content: SizedBox(
           width: 560,
           child: TextField(
             controller: editor,
             minLines: 12,
             maxLines: 18,
-            decoration: InputDecoration(hintText: hint),
+            decoration: InputDecoration(hintText: context.rsText(hint)),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: const RsText('取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('保存'),
+            child: const RsText('保存'),
           ),
         ],
       ),
@@ -303,7 +304,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     final result = await showDialog<(String, String)>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('新建订阅'),
+        title: const RsText('新建订阅'),
         content: SizedBox(
           width: 420,
           child: Column(
@@ -312,12 +313,14 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
               TextField(
                 controller: name,
                 autofocus: true,
-                decoration: const InputDecoration(labelText: '名称'),
+                decoration: InputDecoration(labelText: context.rsText('名称')),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: address,
-                decoration: const InputDecoration(labelText: '订阅文件链接'),
+                decoration: InputDecoration(
+                  labelText: context.rsText('订阅文件链接'),
+                ),
               ),
             ],
           ),
@@ -325,7 +328,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: const RsText('取消'),
           ),
           FilledButton(
             onPressed: () {
@@ -334,7 +337,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                 Navigator.pop(context, (name.text.trim(), value));
               }
             },
-            child: const Text('新建'),
+            child: const RsText('新建'),
           ),
         ],
       ),
@@ -373,13 +376,13 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                       onSubmitted: (_) => _importUrl(),
                       style: const TextStyle(fontSize: 13),
                       decoration: InputDecoration(
-                        hintText: '订阅文件链接',
+                        hintText: context.rsText('订阅文件链接'),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 10,
                           vertical: 0,
                         ),
                         suffixIcon: IconButton(
-                          tooltip: '粘贴',
+                          tooltip: context.rsText('粘贴'),
                           onPressed: importing ? null : _paste,
                           padding: EdgeInsets.zero,
                           icon: const Icon(
@@ -417,7 +420,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),
-                      child: const Text('导入', style: TextStyle(fontSize: 13)),
+                      child: const RsText('导入', style: TextStyle(fontSize: 13)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -432,7 +435,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),
-                      child: const Text('新建', style: TextStyle(fontSize: 13)),
+                      child: const RsText('新建', style: TextStyle(fontSize: 13)),
                     ),
                   ),
                 ],
@@ -543,9 +546,9 @@ class _ProfileCard extends StatelessWidget {
       ),
       items: [
         if (!profile.active)
-          const PopupMenuItem(value: 'activate', child: Text('激活')),
-        const PopupMenuItem(value: 'rename', child: Text('重命名')),
-        const PopupMenuItem(value: 'delete', child: Text('删除')),
+          const PopupMenuItem(value: 'activate', child: RsText('激活')),
+        const PopupMenuItem(value: 'rename', child: RsText('重命名')),
+        const PopupMenuItem(value: 'delete', child: RsText('删除')),
       ],
     );
     switch (value) {
@@ -626,7 +629,7 @@ class _ProfileCard extends StatelessWidget {
                         ),
                       ),
                       IconButton(
-                        tooltip: '刷新',
+                        tooltip: context.rsText('刷新'),
                         onPressed: profile.sourceType == 'url'
                             ? onRefresh
                             : null,
@@ -655,7 +658,7 @@ class _ProfileCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Text(
+                    RsText(
                       _relativeTime(profile.updatedAt),
                       style: const TextStyle(
                         color: DesktopColors.muted,
@@ -668,7 +671,7 @@ class _ProfileCard extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
+                      child: RsText(
                         '${_compactBytes(used)} / ${total > 0 ? _compactBytes(total) : '—'}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -735,8 +738,10 @@ class _ExtensionCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
+                  child: RsText(
                     title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w500,
@@ -752,7 +757,7 @@ class _ExtensionCard extends StatelessWidget {
                     border: Border.all(color: const Color(0xFF168BFA)),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Text(
+                  child: RsText(
                     badge,
                     style: const TextStyle(
                       color: Color(0xFF168BFA),

@@ -9,6 +9,9 @@ import '../../../platform/desktop/desktop_network_service.dart';
 import '../../../services/proxy_app_controller.dart';
 import '../desktop_app.dart' show DesktopColors, DesktopSection;
 import '../diagnostics_sheet.dart';
+import '../../../l10n/l10n_context.dart';
+import '../../../l10n/rs_text.dart';
+import '../../../core/log/app_log.dart';
 
 /// Clash RS reference settings surface sized for the fixed 960×720 window.
 class ReferenceSettingsPage extends StatefulWidget {
@@ -74,12 +77,12 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
   Future<void> _info(String title, String body) => showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text(title),
-      content: Text(body),
+      title: RsText(title),
+      content: RsText(body),
       actions: [
         FilledButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('完成'),
+          child: const RsText('完成'),
         ),
       ],
     ),
@@ -99,16 +102,16 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
     final action = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('备份设置'),
-        content: const Text('导出当前设置，或从已有的 JSON 备份恢复。'),
+        title: const RsText('备份设置'),
+        content: const RsText('导出当前设置，或从已有的 JSON 备份恢复。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 'restore'),
-            child: const Text('恢复备份'),
+            child: const RsText('恢复备份'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, 'export'),
-            child: const Text('导出备份'),
+            child: const RsText('导出备份'),
           ),
         ],
       ),
@@ -127,16 +130,16 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
       final mode = await showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('恢复方式'),
-          content: const Text('替换会移除当前配置；合并会按订阅地址或名称更新并去重。'),
+          title: const RsText('恢复方式'),
+          content: const RsText('替换会移除当前配置；合并会按订阅地址或名称更新并去重。'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, 'merge'),
-              child: const Text('合并'),
+              child: const RsText('合并'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, 'replace'),
-              child: const Text('替换'),
+              child: const RsText('替换'),
             ),
           ],
         ),
@@ -170,11 +173,11 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
     );
   }
 
-  Future<void> _copyText(String title, String text) async {
+  Future<void> _copyRsText(String title, String text) async {
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
     ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('$title已复制')));
+        .showSnackBar(SnackBar(content: RsText('$title已复制')));
   }
 
   String get _controllerAddress =>
@@ -241,7 +244,7 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
     final save = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('端口设置'),
+        title: const RsText('端口设置'),
         content: SizedBox(
           width: 430,
           child: Wrap(
@@ -264,11 +267,11 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: const RsText('取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('保存并重载'),
+            child: const RsText('保存并重载'),
           ),
         ],
       ),
@@ -285,11 +288,14 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
     for (final entry in fields.entries) {
       final port = int.tryParse(entry.value.text.trim());
       if (port == null || port < 1 || port > 65535) {
-        error = '${entry.key} 端口范围必须是 1–65535';
+        error = AppLog.pick(
+          '${entry.key} 端口范围必须是 1–65535',
+          '${entry.key} port must be in range 1–65535',
+        );
         break;
       }
       if (!used.add(port)) {
-        error = '端口 $port 重复';
+        error = AppLog.pick('端口 $port 重复', 'Port $port is duplicated');
         break;
       }
       overrides[entry.key] = '$port';
@@ -300,7 +306,7 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
     if (error != null) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error)));
+            .showSnackBar(SnackBar(content: RsText(error)));
       }
       return;
     }
@@ -320,24 +326,26 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
     final save = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('启动脚本'),
+        title: const RsText('启动脚本'),
         content: SizedBox(
           width: 540,
           child: TextField(
             controller: editor,
             minLines: 8,
             maxLines: 14,
-            decoration: const InputDecoration(hintText: '代理核心启动后执行的命令（可留空）'),
+            decoration: InputDecoration(
+              hintText: context.rsText('代理核心启动后执行的命令（可留空）'),
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: const RsText('取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('保存'),
+            child: const RsText('保存'),
           ),
         ],
       ),
@@ -351,19 +359,19 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
     final selected = await showDialog<String>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('主题设置'),
+        title: const RsText('主题设置'),
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.pop(context, 'light'),
-            child: const Text('浅色'),
+            child: const RsText('浅色'),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.pop(context, 'dark'),
-            child: const Text('深色'),
+            child: const RsText('深色'),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.pop(context, 'system'),
-            child: const Text('跟随系统'),
+            child: const RsText('跟随系统'),
           ),
         ],
       ),
@@ -379,25 +387,25 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('杂项设置'),
+          title: const RsText('杂项设置'),
           content: SizedBox(
             width: 420,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 SwitchListTile(
-                  title: const Text('界面动画'),
+                  title: const RsText('界面动画'),
                   value: animations,
                   onChanged: (next) => setDialogState(() => animations = next),
                 ),
                 SwitchListTile(
-                  title: const Text('桌面通知'),
+                  title: const RsText('桌面通知'),
                   value: notifications,
                   onChanged: (next) =>
                       setDialogState(() => notifications = next),
                 ),
                 SwitchListTile(
-                  title: const Text('关闭时驻留托盘'),
+                  title: const RsText('关闭时驻留托盘'),
                   value: closeToTray,
                   onChanged: (next) => setDialogState(() => closeToTray = next),
                 ),
@@ -407,11 +415,11 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消'),
+              child: const RsText('取消'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('保存'),
+              child: const RsText('保存'),
             ),
           ],
         ),
@@ -440,7 +448,7 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
           children: [
             Expanded(child: _buildLeftColumn()),
             const SizedBox(width: 12),
-            Expanded(child: _buildRightColumn()),
+            Expanded(child: _buildRightColumn(context)),
           ],
         ),
       ],
@@ -547,7 +555,7 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
           _SettingLink(
             label: '外部控制',
             suffixIcon: Icons.settings,
-            onTap: () => _copyText('外部控制地址', _controllerAddress),
+            onTap: () => _copyRsText('外部控制地址', _controllerAddress),
           ),
           _SettingLink(label: '网页界面', onTap: _openWebUi),
           _SettingLink(
@@ -572,7 +580,9 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
     ],
   );
 
-  Widget _buildRightColumn() => Column(
+  Widget _buildRightColumn(BuildContext context) {
+    final l10n = context.l10n;
+    return Column(
     children: [
       _SettingsPanel(
         title: 'RS 基础设置',
@@ -580,7 +590,14 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
           _SettingChoice(
             label: '语言设置',
             value: value.language,
-            values: const {'zh-CN': '中文', 'en-US': 'English'},
+            values: {
+              'zh-CN': l10n?.languageSimplifiedChinese ?? '简体中文',
+              'zh-TW': l10n?.languageTraditionalChinese ?? '繁體中文',
+              'en-US': l10n?.languageEnglish ?? 'English',
+              'ja-JP': l10n?.languageJapanese ?? '日本語',
+              'ko-KR': l10n?.languageKorean ?? '한국어',
+              'fr-FR': l10n?.languageFrench ?? 'Français',
+            },
             onChanged: (next) => _set(value.copyWith(language: next)),
           ),
           _ThemeSetting(
@@ -663,10 +680,10 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
             info: true,
             onTap: () async {
               await _set(value.copyWith(animations: !value.animations));
-              if (mounted) {
+              if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(value.animations ? '轻量模式已关闭' : '轻量模式已启用'),
+                    content: RsText(value.animations ? '轻量模式已关闭' : '轻量模式已启用'),
                   ),
                 );
               }
@@ -689,12 +706,13 @@ class _ReferenceSettingsPageState extends State<ReferenceSettingsPage> {
             trailingText: 'v1.0.0',
             copyIcon: true,
             showChevron: false,
-            onTap: () => _copyText('RS 版本', 'v1.0.0'),
+            onTap: () => _copyRsText('RS 版本', 'v1.0.0'),
           ),
         ],
       ),
     ],
   );
+  }
 }
 
 class _SettingsPanel extends StatelessWidget {
@@ -717,7 +735,7 @@ class _SettingsPanel extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 17),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text(
+              child: RsText(
                 title,
                 style: const TextStyle(
                   fontSize: 16,
@@ -889,7 +907,7 @@ class _ThemeButton extends StatelessWidget {
           right: BorderSide(color: DesktopColors.blue, width: .6),
         ),
       ),
-      child: Text(
+      child: RsText(
         label,
         style: TextStyle(
           fontSize: 12,
@@ -933,8 +951,10 @@ class _ChoiceBox extends StatelessWidget {
         ),
         items: values.entries
             .map(
-              (entry) =>
-                  DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+              (entry) => DropdownMenuItem(
+                value: entry.key,
+                child: RsText(entry.value),
+              ),
             )
             .toList(),
         onChanged: (next) {
@@ -969,7 +989,7 @@ class _SettingValue extends StatelessWidget {
           border: Border.all(color: const Color(0xFF565967)),
           borderRadius: BorderRadius.circular(5),
         ),
-        child: Text(value, style: const TextStyle(fontSize: 14)),
+        child: RsText(value, style: const TextStyle(fontSize: 14)),
       ),
     ),
   );
@@ -1014,12 +1034,12 @@ class _SettingLink extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (blueLabel != null)
-            Text(
+            RsText(
               blueLabel!,
               style: const TextStyle(fontSize: 14, color: DesktopColors.blue),
             ),
           if (trailingText != null)
-            Text(trailingText!, style: const TextStyle(fontSize: 14)),
+            RsText(trailingText!, style: const TextStyle(fontSize: 14)),
           if (showChevron)
             const Padding(
               padding: EdgeInsets.only(left: 8),
@@ -1061,7 +1081,7 @@ class _SettingRow extends StatelessWidget {
           child: Row(
             children: [
               Flexible(
-                child: Text(
+                child: RsText(
                   label,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

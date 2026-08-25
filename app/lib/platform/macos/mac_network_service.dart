@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import '../../core/log/app_log.dart';
 import '../../core/vpn/vpn_controller.dart';
 import '../../services/mihomo_geodata_installer.dart';
 import '../desktop/desktop_network_service.dart';
@@ -11,10 +12,11 @@ import '../desktop/desktop_network_service.dart';
 /// macOS 网络层日志输出：
 /// - 写到 `~/Library/Logs/ClashRS/network.log`(用于自用定位错误)
 /// - 同时通过 dart:developer 输出到 macOS Console(便于 `log show` 抓)
+/// - 文本按 [AppLog] 当前 locale 自动选 zh / en
 File? _logFile;
-void _netLog(String tag, String message) {
+void _netLog(String tag, String zh, String en) {
   final stamp = DateTime.now().toIso8601String();
-  final line = '[$stamp] [$tag] $message';
+  final line = '[$stamp] [$tag] ${AppLog.pick(zh, en)}';
   developer.log(line, name: 'ClashRS.Network');
   try {
     _logFile ??= File(
@@ -23,7 +25,10 @@ void _netLog(String tag, String message) {
     )..parent.createSync(recursive: true);
     _logFile!.writeAsStringSync('$line\n', mode: FileMode.append, flush: true);
   } catch (e) {
-    developer.log('写日志失败：$e', name: 'ClashRS.Network');
+    developer.log(
+      AppLog.pick('写日志失败：$e', 'failed to write log: $e'),
+      name: 'ClashRS.Network',
+    );
   }
 }
 
@@ -107,24 +112,36 @@ MacProxyEndpoint parseMacProxyEndpoint(String output) {
   );
 }
 
+/// DesktopNetworkService macOS 实现。
+///
+/// 职责:系统代理(proxy + state) + TUN(mihomo 子进程)的状态机。
+/// 关键安全策略:任何终止 mihomo PID 的动作都先校验进程身份
+/// (`_readProcessIdentity` + `_matchesProcessIdentity`),避免误杀同 PID
+/// 复用的其他进程。
 class MacNetworkService extends ChangeNotifier
     implements DesktopNetworkService {
-  @override
-  DesktopNetworkMode mode = DesktopNetworkMode.off;
-  @override
-  String? lastError;
+  MacNetworkService() {
+    _setMode(DesktopNetworkMode.off);
+  }
 
-  /// 统一入口:设 mode 自动 notifyListeners,让 UI 同步 rebuild。
-  void _setMode(DesktopNetworkMode value) {
-    if (mode == value) return;
-    mode = value;
+  DesktopNetworkMode _mode = DesktopNetworkMode.off;
+  String? _lastError;
+
+  @override
+  DesktopNetworkMode get mode => _mode;
+
+  @override
+  String? get lastError => _lastError;
+
+  void _setMode(DesktopNetworkMode next) {
+    if (_mode == next) return;
+    _mode = next;
     notifyListeners();
   }
 
-  /// 统一入口:设 lastError 自动 notifyListeners。
   void _setLastError(String? value) {
-    if (lastError == value) return;
-    lastError = value;
+    if (_lastError == value) return;
+    _lastError = value;
     notifyListeners();
   }
 
@@ -138,10 +155,10 @@ class MacNetworkService extends ChangeNotifier
   @override
   Future<void> recover() async {
     if (!Platform.isMacOS) return;
-    _netLog('recover', 'start');
+    _netLog('recover', 'start', 'start');
     final file = await _recoveryStateFile();
     if (!await file.exists()) {
-      _netLog('recover', 'no recovery file');
+      _netLog('recover', 'no recovery file', 'no recovery file');
       return;
     }
     try {
@@ -170,8 +187,9 @@ class MacNetworkService extends ChangeNotifier
             _tunPid!,
             bundledMihomo,
           );
-        } catch (_) {
+        } catch (e, s) {
           // disableTun 会保留恢复文件并返回明确的身份不一致错误。
+          debugPrint('mac_network_service.disableTun cleanup: $e\n$s');
         }
       }
       _baselineUtun = ((root['baselineUtun'] as List?) ?? const [])
@@ -181,19 +199,26 @@ class MacNetworkService extends ChangeNotifier
       _netLog(
         'recover',
         'snapshots=${_snapshots.length} tunPid=$_tunPid mode=${root['mode']}',
+        'snapshots=${_snapshots.length} tunPid=$_tunPid mode=${root['mode']}',
       );
       await restore();
       _setLastError(null);
-      _netLog('recover', 'done');
+      _netLog('recover', 'done', 'done');
     } catch (error, stack) {
-      _netLog('recover', 'FAIL $error\n$stack');
-      _setLastError('恢复 macOS 网络状态失败：$error');
+      _netLog(
+        'recover',
+        'recover 失败：$error\n$stack',
+        'recover failed: $error\n$stack',
+      );
+      _setLastError(
+        AppLog.pick('恢复 macOS 网络状态失败：$error', 'Failed to restore macOS network state: $error'),
+      );
       rethrow;
     }
   }
 
   Future<List<String>> activeServices() async {
-    _netLog('activeServices', '开始列出网络服务');
+    _netLog('activeServices', '开始列出网络服务', 'start listing network services');
     final result = await Process.run('/usr/sbin/networksetup', const [
       '-listallnetworkservices',
     ]);
@@ -201,6 +226,7 @@ class MacNetworkService extends ChangeNotifier
       _netLog(
         'activeServices',
         '失败 exit=${result.exitCode} stderr=${result.stderr} stdout=${result.stdout}',
+        'failed exit=${result.exitCode} stderr=${result.stderr} stdout=${result.stdout}',
       );
       throw StateError(result.stderr.toString().trim());
     }
@@ -223,7 +249,11 @@ class MacNetworkService extends ChangeNotifier
               !line.contains('denotes that a network service'),
         )
         .toList();
-    _netLog('activeServices', '得到 ${list.length} 个 service: $list');
+    _netLog(
+      'activeServices',
+      '得到 ${list.length} 个 service: $list',
+      'got ${list.length} services: $list',
+    );
     return list;
   }
 
@@ -233,10 +263,18 @@ class MacNetworkService extends ChangeNotifier
     int socksPort = 17891,
   }) async {
     if (!Platform.isMacOS) return;
-    _netLog('enableSystemProxy', 'ENTER http=$httpPort socks=$socksPort');
+    _netLog(
+      'enableSystemProxy',
+      'ENTER http=$httpPort socks=$socksPort',
+      'ENTER http=$httpPort socks=$socksPort',
+    );
     try {
       final services = await activeServices();
-      _netLog('enableSystemProxy', 'snapshots 清空,开始记录原状态');
+      _netLog(
+        'enableSystemProxy',
+        'snapshots 清空,开始记录原状态',
+        'snapshots cleared, start recording original state',
+      );
       _snapshots.clear();
       for (final service in services) {
         final web = await _endpoint(service, '-getwebproxy');
@@ -244,6 +282,7 @@ class MacNetworkService extends ChangeNotifier
         final sk = await _endpoint(service, '-getsocksfirewallproxy');
         _netLog(
           'enableSystemProxy',
+          'snapshot[$service] web=$web secure=$sw socks=$sk',
           'snapshot[$service] web=$web secure=$sw socks=$sk',
         );
         _snapshots.add(
@@ -256,10 +295,18 @@ class MacNetworkService extends ChangeNotifier
         );
       }
       await _persistRecovery('systemProxy');
-      _netLog('enableSystemProxy', '开始 set 代理');
+      _netLog(
+        'enableSystemProxy',
+        '开始 set 代理',
+        'start setting proxy',
+      );
       // 直接用 networksetup 进程设代理,不经过 osascript + sudo。
       for (final service in services) {
-        _netLog('enableSystemProxy', '-- service=$service --');
+        _netLog(
+          'enableSystemProxy',
+          '-- service=$service --',
+          '-- service=$service --',
+        );
         await _runNetworksetup([
           '-setwebproxy',
           service,
@@ -282,16 +329,35 @@ class MacNetworkService extends ChangeNotifier
         await _runNetworksetup(['-setsecurewebproxystate', service, 'on']);
         await _runNetworksetup(['-setsocksfirewallproxystate', service, 'on']);
       }
-      _netLog('enableSystemProxy', 'OK,所有 service 都 set 完');
+      _netLog(
+        'enableSystemProxy',
+        'OK,所有 service 都 set 完',
+        'OK, all services set',
+      );
       _setMode(DesktopNetworkMode.systemProxy);
       _setLastError(null);
     } catch (error, stack) {
       // 把具体哪一步失败抛到上层,不要让底层 throw 出空 StateError
       // (例如 networksetup 失败时 stderr 可能是空)
-      _netLog('enableSystemProxy', 'FAIL error=$error');
-      _netLog('enableSystemProxy', 'STACK $stack');
-      _setLastError('启用系统代理失败：$error');
-      throw StateError('启用系统代理失败 ($httpPort/$socksPort)：$error');
+      _netLog(
+        'enableSystemProxy',
+        'enableSystemProxy 失败：$error',
+        'enableSystemProxy failed: $error',
+      );
+      _netLog(
+        'enableSystemProxy',
+        '调用栈：$stack',
+        'stack: $stack',
+      );
+      _setLastError(
+        AppLog.pick('启用系统代理失败：$error', 'Failed to enable system proxy: $error'),
+      );
+      throw StateError(
+        AppLog.pick(
+          '启用系统代理失败 ($httpPort/$socksPort)：$error',
+          'Failed to enable system proxy ($httpPort/$socksPort): $error',
+        ),
+      );
     }
   }
 
@@ -309,22 +375,22 @@ class MacNetworkService extends ChangeNotifier
     for (final snapshot in _snapshots) {
       for (final operation
           in <({String set, String state, MacProxyEndpoint endpoint})>[
-            (
-              set: '-setwebproxy',
-              state: '-setwebproxystate',
-              endpoint: snapshot.web,
-            ),
-            (
-              set: '-setsecurewebproxy',
-              state: '-setsecurewebproxystate',
-              endpoint: snapshot.secureWeb,
-            ),
-            (
-              set: '-setsocksfirewallproxy',
-              state: '-setsocksfirewallproxystate',
-              endpoint: snapshot.socks,
-            ),
-          ]) {
+        (
+          set: '-setwebproxy',
+          state: '-setwebproxystate',
+          endpoint: snapshot.web,
+        ),
+        (
+          set: '-setsecurewebproxy',
+          state: '-setsecurewebproxystate',
+          endpoint: snapshot.secureWeb,
+        ),
+        (
+          set: '-setsocksfirewallproxy',
+          state: '-setsocksfirewallproxystate',
+          endpoint: snapshot.socks,
+        ),
+      ]) {
         try {
           await _restoreOne(
             snapshot,
@@ -339,7 +405,9 @@ class MacNetworkService extends ChangeNotifier
     }
     if (failures.isNotEmpty) {
       final detail = failures.join('\n');
-      _setLastError('恢复 macOS 系统代理失败：\n$detail');
+      _setLastError(
+        AppLog.pick('恢复 macOS 系统代理失败：\n$detail', 'Failed to restore macOS system proxy:\n$detail'),
+      );
       // 保留快照与 recovery 文件，下一次启动仍可继续恢复。
       throw StateError(detail);
     }
@@ -362,12 +430,18 @@ class MacNetworkService extends ChangeNotifier
     // 只 set state off 即可,不要再 set 空 server/port,否则 networksetup
     // 会报 "The parameters were not valid." 整个 restore 链路就会断。
     if (!endpoint.enabled || endpoint.server.isEmpty || endpoint.port <= 0) {
-      _netLog('restoreOne', '${snapshot.service} $stateOp 原本未开,只关 state');
+      _netLog(
+        'restoreOne',
+        '${snapshot.service} $stateOp 原本未开,只关 state',
+        '${snapshot.service} $stateOp was off, only turning off state',
+      );
       await _runNetworksetup([stateOp, snapshot.service, 'off']);
       return;
     }
     _netLog(
       'restoreOne',
+      '${snapshot.service} $setOp ${endpoint.server}:${endpoint.port} '
+          'was=${endpoint.enabled ? 'on' : 'off'}',
       '${snapshot.service} $setOp ${endpoint.server}:${endpoint.port} '
           'was=${endpoint.enabled ? 'on' : 'off'}',
     );
@@ -397,13 +471,21 @@ class MacNetworkService extends ChangeNotifier
     String script = '',
   }) async {
     if (!Platform.isMacOS) return;
-    _netLog('enableTun', 'ENTER base=$baseConfigPath support=$supportPath');
+    _netLog(
+      'enableTun',
+      'ENTER base=$baseConfigPath support=$supportPath',
+      'ENTER base=$baseConfigPath support=$supportPath',
+    );
     try {
       // 永久 setuid helper 已移除。每次启动只对固定的打包 mihomo
       // 执行一次明确的管理员操作，避免留下可被任意本地用户调用的 root 入口。
       await recover();
       final base = await File(baseConfigPath).readAsString();
-      _netLog('enableTun', '已读 base config, length=${base.length}');
+      _netLog(
+        'enableTun',
+        '已读 base config, length=${base.length}',
+        'read base config, length=${base.length}',
+      );
       final runtime = File('$supportPath/runtime-macos-tun.yaml');
       await runtime.writeAsString(
         buildRuntimeMacTunConfig(
@@ -418,7 +500,11 @@ class MacNetworkService extends ChangeNotifier
         ),
         flush: true,
       );
-      _netLog('enableTun', '已写 runtime-macos-tun.yaml');
+      _netLog(
+        'enableTun',
+        '已写 runtime-macos-tun.yaml',
+        'wrote runtime-macos-tun.yaml',
+      );
       // mihomo binary 路径:bundle/Contents/Resources/mihomo
       final mihomoBin = File(
         '${File(Platform.resolvedExecutable).parent.parent.path}/Resources/mihomo',
@@ -429,12 +515,20 @@ class MacNetworkService extends ChangeNotifier
           '请跑 tools/download_mihomo.sh 下载后重 build',
         );
       }
-      _netLog('enableTun', 'mihomo 路径=${mihomoBin.path}');
+      _netLog(
+        'enableTun',
+        'mihomo 路径=${mihomoBin.path}',
+        'mihomo path=${mihomoBin.path}',
+      );
       await const MihomoGeodataInstaller().ensureInstalled(
         bundledResourceDirectory: mihomoBin.parent,
         supportDirectory: Directory(supportPath),
       );
-      _netLog('enableTun', 'mihomo 地理数据库已就绪');
+      _netLog(
+        'enableTun',
+        'mihomo 地理数据库已就绪',
+        'mihomo geodata ready',
+      );
       final log = File('$supportPath/macos-tun.log');
       _baselineUtun = await _listUtunInterfaces();
       _tunControllerPort = controllerPort;
@@ -455,6 +549,7 @@ class MacNetworkService extends ChangeNotifier
       _netLog(
         'enableTun',
         'mihomo pid=$tunPid, 等待 controller $controllerPort 上线',
+        'mihomo pid=$tunPid, waiting for controller $controllerPort to come up',
       );
 
       await _persistRecovery('tun');
@@ -479,14 +574,20 @@ class MacNetworkService extends ChangeNotifier
           _netLog(
             'enableTun',
             'OK mihomo controller $controllerPort 上线, _tunPid=$_tunPid',
+            'OK mihomo controller $controllerPort is up, _tunPid=$_tunPid',
           );
           _setMode(DesktopNetworkMode.tun);
           _setLastError(null);
           return;
-        } catch (_) {
+        } catch (e, s) {
           // mihomo 启动失败/异常退出时,及时清理
+          debugPrint('mac_network_service.enableTun validate: $e\n$s');
           if (!await _pidAlive(tunPid)) {
-            _netLog('enableTun', 'FAIL mihomo 启动后立即退出, pid=$tunPid');
+            _netLog(
+              'enableTun',
+              'FAIL mihomo 启动后立即退出, pid=$tunPid',
+              'FAIL mihomo exited immediately after start, pid=$tunPid',
+            );
             _setMode(DesktopNetworkMode.off);
             throw StateError('mihomo 启动后立即退出,请查看 $supportPath/macos-tun.log');
           }
@@ -494,11 +595,23 @@ class MacNetworkService extends ChangeNotifier
         }
       }
       await disableTun();
-      _netLog('enableTun', 'FAIL 等待 $controllerPort 端口超时');
+      _netLog(
+        'enableTun',
+        'FAIL 等待 $controllerPort 端口超时',
+        'FAIL timeout waiting for port $controllerPort',
+      );
       throw StateError('mihomo 启动超时,请查看 $supportPath/macos-tun.log');
     } catch (error, stack) {
-      _netLog('enableTun', 'FAIL error=$error');
-      _netLog('enableTun', 'STACK $stack');
+      _netLog(
+        'enableTun',
+        'enableTun 失败：$error',
+        'enableTun failed: $error',
+      );
+      _netLog(
+        'enableTun',
+        '调用栈：$stack',
+        'stack: $stack',
+      );
       rethrow;
     }
   }
@@ -516,7 +629,8 @@ class MacNetworkService extends ChangeNotifier
       final text = result.stdout.toString().trim();
       if (text.isEmpty) return null;
       return int.tryParse(text.split(RegExp(r'\s+')).first);
-    } catch (_) {
+    } catch (e, s) {
+      debugPrint('mac_network_service.readPid: $e\n$s');
       return null;
     }
   }
@@ -527,14 +641,25 @@ class MacNetworkService extends ChangeNotifier
     if (pid != null && await _pidAlive(pid)) {
       final identity = _tunIdentity;
       if (identity == null || !await _matchesProcessIdentity(identity)) {
-        final message = '拒绝终止 PID $pid：进程身份与恢复记录不一致';
+        final message = AppLog.pick(
+          '拒绝终止 PID $pid：进程身份与恢复记录不一致',
+          'Refused to kill PID $pid: process identity does not match recovery record',
+        );
         _setLastError(message);
         throw StateError(message);
       }
-      _netLog('disableTun', 'try SIGTERM pid=$pid via administrator');
+      _netLog(
+        'disableTun',
+        'try SIGTERM pid=$pid via administrator',
+        'try SIGTERM pid=$pid via administrator',
+      );
       await _runAdministrator('/bin/kill -TERM $pid 2>/dev/null || true');
       if (!await _waitForProcessExit(pid, const Duration(seconds: 4))) {
-        _netLog('disableTun', 'TERM 4s 内未退出, 使用 SIGKILL');
+        _netLog(
+          'disableTun',
+          'TERM 4s 内未退出, 使用 SIGKILL',
+          'TERM did not exit within 4s, using SIGKILL',
+        );
         await _runAdministrator('/bin/kill -KILL $pid 2>/dev/null || true');
         if (!await _waitForProcessExit(pid, const Duration(seconds: 2))) {
           throw StateError('TUN 核心进程 $pid 在 SIGKILL 后仍未退出');
@@ -562,10 +687,11 @@ class MacNetworkService extends ChangeNotifier
   Future<bool> _pidAlive(int pid) async {
     try {
       // TUN 核心属于 root；普通用户对它执行 kill -0 会得到 EPERM，
-      // 因此使用 ps 查询而不是把“无信号权限”误判为进程已经退出。
+      // 因此使用 ps 查询而不是把"无信号权限"误判为进程已经退出。
       final result = await Process.run('/bin/ps', ['-p', '$pid', '-o', 'pid=']);
       return result.exitCode == 0 && result.stdout.toString().trim() == '$pid';
-    } catch (_) {
+    } catch (e, s) {
+      debugPrint('mac_network_service.pidAlive ps failed for $pid: $e\n$s');
       return false;
     }
   }
@@ -626,7 +752,8 @@ class MacNetworkService extends ChangeNotifier
         expected.executable,
       );
       return current.startToken == expected.startToken;
-    } catch (_) {
+    } catch (e, s) {
+      debugPrint('mac_network_service.verifyProcess pid=${expected.pid}: $e\n$s');
       return false;
     }
   }
@@ -651,7 +778,8 @@ class MacNetworkService extends ChangeNotifier
       );
       socket.destroy();
       return true;
-    } catch (_) {
+    } catch (e, s) {
+      debugPrint('mac_network_service._controllerPortOpen port=$port: $e\n$s');
       return false;
     }
   }
@@ -670,11 +798,14 @@ class MacNetworkService extends ChangeNotifier
       await Future<void>.delayed(const Duration(milliseconds: 200));
     } while (DateTime.now().isBefore(deadline));
     final detail = [
-      if (portOpen) '控制端口 $_tunControllerPort 仍在监听',
-      if (unexpected.isNotEmpty) '残留虚拟网卡：${unexpected.join(', ')}',
+      if (portOpen)
+        AppLog.pick('控制端口 $_tunControllerPort 仍在监听', 'control port $_tunControllerPort still listening'),
+      if (unexpected.isNotEmpty)
+        AppLog.pick('残留虚拟网卡：${unexpected.join(', ')}', 'residual virtual NICs: ${unexpected.join(', ')}'),
     ].join('；');
-    _setLastError('TUN 清理未完成：$detail');
-    throw StateError('TUN 清理未完成：$detail');
+    final message = AppLog.pick('TUN 清理未完成：$detail', 'TUN cleanup incomplete: $detail');
+    _setLastError(message);
+    throw StateError(message);
   }
 
   @override
@@ -736,7 +867,7 @@ class MacNetworkService extends ChangeNotifier
   }
 
   Future<MacProxyEndpoint> _endpoint(String service, String operation) async {
-    _netLog('endpoint', '$operation $service');
+    _netLog('endpoint', '$operation $service', '$operation $service');
     final result = await Process.run('/usr/sbin/networksetup', [
       operation,
       service,
@@ -745,16 +876,17 @@ class MacNetworkService extends ChangeNotifier
       _netLog(
         'endpoint',
         'FAIL exit=${result.exitCode} stderr=${result.stderr} stdout=${result.stdout}',
+        'FAIL exit=${result.exitCode} stderr=${result.stderr} stdout=${result.stdout}',
       );
       throw StateError(result.stderr.toString().trim());
     }
     final ep = parseMacProxyEndpoint(result.stdout.toString());
-    _netLog('endpoint', 'OK $ep');
+    _netLog('endpoint', 'OK $ep', 'OK $ep');
     return ep;
   }
 
   Future<String> _runAdministrator(String command) async {
-    _netLog('runAdministrator', 'CALL $command');
+    _netLog('runAdministrator', 'CALL $command', 'CALL $command');
     final escaped = command.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
     final result = await Process.run('/usr/bin/osascript', [
       '-e',
@@ -769,6 +901,8 @@ class MacNetworkService extends ChangeNotifier
         'runAdministrator',
         'FAIL exit=${result.exitCode} stderr=${stderr.isEmpty ? '<空>' : stderr} '
             'stdout=${stdout.isEmpty ? '<空>' : stdout}',
+        'FAIL exit=${result.exitCode} stderr=${stderr.isEmpty ? '<empty>' : stderr} '
+            'stdout=${stdout.isEmpty ? '<empty>' : stdout}',
       );
       final detail = stderr.isNotEmpty
           ? stderr
@@ -777,7 +911,11 @@ class MacNetworkService extends ChangeNotifier
                 : 'osascript 退出码 ${result.exitCode}(用户可能取消了授权)');
       throw StateError(detail);
     }
-    _netLog('runAdministrator', 'OK -> ${result.stdout.toString().trim()}');
+    _netLog(
+      'runAdministrator',
+      'OK -> ${result.stdout.toString().trim()}',
+      'OK -> ${result.stdout.toString().trim()}',
+    );
     return result.stdout.toString();
   }
 
@@ -785,7 +923,7 @@ class MacNetworkService extends ChangeNotifier
   /// 代理偏好不需要管理员权限,可以避免无谓的授权弹窗。
   /// 失败时抛 StateError 并带上 stderr 让上层能定位。
   Future<String> _runNetworksetup(List<String> argList) async {
-    _netLog('networksetup', 'CALL ${argList.join(' ')}');
+    _netLog('networksetup', 'CALL ${argList.join(' ')}', 'CALL ${argList.join(' ')}');
     final result = await Process.run('/usr/sbin/networksetup', argList);
     if (result.exitCode != 0) {
       final stderr = result.stderr.toString().trim();
@@ -794,6 +932,8 @@ class MacNetworkService extends ChangeNotifier
         'networksetup',
         'FAIL exit=${result.exitCode} stderr=${stderr.isEmpty ? '<空>' : stderr} '
             'stdout=${stdout.isEmpty ? '<空>' : stdout}',
+        'FAIL exit=${result.exitCode} stderr=${stderr.isEmpty ? '<empty>' : stderr} '
+            'stdout=${stdout.isEmpty ? '<empty>' : stdout}',
       );
       final detail = stderr.isNotEmpty
           ? stderr
@@ -802,7 +942,7 @@ class MacNetworkService extends ChangeNotifier
                 : 'networksetup 退出码 ${result.exitCode}');
       throw StateError('networksetup ${argList.join(' ')} 失败：$detail');
     }
-    _netLog('networksetup', 'OK');
+    _netLog('networksetup', 'OK', 'OK');
     return result.stdout.toString();
   }
 
